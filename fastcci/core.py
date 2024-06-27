@@ -74,7 +74,7 @@ def statistical_analysis_method(
     # Stage II : Percentages
     percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
     percents_analysis = analyze_interactions_percents(percents, interactions, threshold=min_percentile)
-    
+
     # Stage III : Null Distribution
     if cluster_distrib_method == 'Mean':
         mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)

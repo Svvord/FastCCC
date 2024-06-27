@@ -70,7 +70,15 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     ### interactions, counts, labels  ##
     interactions = get_interactions(cpdb_file_path, select_list)
     start = timeit.default_timer()
-    counts = anndata.read_h5ad(counts_file_path)#.to_df()
+    #counts = anndata.read_h5ad(counts_file_path)#.to_df()
+    filename, file_extension = os.path.splitext(counts_file_path)
+    if file_extension == '.h5ad':
+        counts = anndata.read_h5ad(counts_file_path).to_df()
+    if file_extension == '.tsv':
+        counts = pd.read_csv(counts_file_path, sep='\t', header=0, index_col=0).T
+    if file_extension == '.csv':
+        counts = pd.read_csv(counts_file_path, sep=',', header=0, index_col=0).T
+
     stop = timeit.default_timer()
     print('Read Time: ', stop - start) 
     
@@ -79,13 +87,16 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     print("reading_count\t{:.2f}MB".format(current_memory))
     #MMMMM
     
-    if meta_key is not None:
-        labels_df = pd.DataFrame(counts.obs[meta_key])
-        labels_df.columns = ['cell_type']
-        labels_df.index.name = 'barcode_sample'
-    else:
-        labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0)
-    
+    #if meta_key is not None:
+    #    labels_df = pd.DataFrame(counts.obs[meta_key])
+    #    labels_df.columns = ['cell_type']
+    #    labels_df.index.name = 'barcode_sample'
+    #else:
+    #    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0)
+    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0, header=None)
+    labels_df.columns = ['cell_type']
+    labels_df.index.name = 'barcode_sample'
+ 
     '''
     interactions(pandas.DataFrame):
     =======================================================
@@ -128,9 +139,6 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     ##########################
 
 
-   
-
-
     ######################################################################
     #                      2.Counts DF preprocess                        #
     ######################################################################
@@ -144,11 +152,13 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     select_columns = []
     columns_names = []
     for foo, boo in zip(tmp.index, tmp[convert_type]):
-        if boo in counts.var_names:#counts.columns:
+        #if boo in counts.var_names:#counts.columns:
+        if boo in counts.columns:
             select_columns.append(boo)
             columns_names.append(foo)
 
-    reduced_counts = counts[:, select_columns].to_df()
+    #reduced_counts = counts[:, select_columns].to_df()
+    reduced_counts = counts.loc[:, select_columns]
     reduced_counts.columns = columns_names
     reduced_counts = reduced_counts.groupby(reduced_counts.columns, axis=1).mean()
     ######################################
