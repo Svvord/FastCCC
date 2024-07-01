@@ -24,6 +24,30 @@ def get_interactions(cpdb_file_path, select_list=[]):
     return interactions
 
 
+# --- 06/27/2024 @mavinquiet
+def get_count_data(counts_file_path, meta_file_path):
+    ''' Obtain count data
+    input:
+        counts_file_path(str): log-normalized count matrix path
+        meta_file_path(str): metadata file path that contains cell labels
+    output:
+        counts_df(pd.DataFrame): counts dataframe
+        labels_df(pd.DataFrame): labels information
+    '''
+    filename, file_extension = os.path.splitext(counts_file_path)
+    if file_extension == '.h5ad':
+        counts_df = anndata.read_h5ad(counts_file_path).to_df()
+    if file_extension == '.tsv':
+        counts_df = pd.read_csv(counts_file_path, sep='\t', header=0, index_col=0).T
+    if file_extension == '.csv':
+        counts_df = pd.read_csv(counts_file_path, sep=',', header=0, index_col=0).T
+    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0, header=None)
+    labels_df.columns = ['cell_type']
+    labels_df.index.name = 'barcode_sample'
+    return counts_df, labels_df
+# --- end
+
+
 def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_type, meta_key=None, select_list=[]):
 
     '''
