@@ -17,18 +17,23 @@ max_value_4_log1p = 14
 pmf_bin_edge = np.arange(0, max_value_4_log1p + 1e-10, precision)
 pmf_bins = np.arange(0, max_value_4_log1p - 1e-10, precision)
 pmf_int_bins = np.arange(len(pmf_bins))
-index_mat = np.load(os.path.dirname(os.path.abspath(__file__))+os.sep+'index_mat.npy') # TODO: put under data folder and make it an external data for building package
-#############################################
-#product_mat = np.outer(pmf_bins, pmf_bins)
-#index_mat = np.zeros((len(pmf_bins), len(pmf_bins)), dtype=np.int16)
-#last_value = -1
-#for i, item in tqdm(enumerate(pmf_bins)):
-#    value = item ** 2
-#    index =np.where(np.logical_and(product_mat > last_value, product_mat <= value))
-#    index_mat[index] = i
-#    last_value = value
-#np.save('index_mat.npy', index_mat) 
-#############################################
+
+mul_index_file_name = os.path.dirname(os.path.abspath(__file__))+os.sep+str(precision)+'index_mat.npy'
+if os.path.exists(mul_index_file_name):
+    print("Loading cached files.")
+    index_mat = np.load(mul_index_file_name)
+else:
+    ############################################
+    product_mat = np.outer(pmf_bins, pmf_bins)
+    index_mat = np.zeros((len(pmf_bins), len(pmf_bins)), dtype=np.int16)
+    last_value = -1
+    for i, item in enumerate(pmf_bins):
+        value = item ** 2
+        index =np.where(np.logical_and(product_mat > last_value, product_mat <= value))
+        index_mat[index] = i
+        last_value = value
+    np.save(mul_index_file_name, index_mat) 
+    ############################################
 
 def update_precision(new_precision):
     global precision, pmf_bin_edge, pmf_bins, pmf_int_bins

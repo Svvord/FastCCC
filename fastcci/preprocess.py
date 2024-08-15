@@ -24,31 +24,7 @@ def get_interactions(cpdb_file_path, select_list=[]):
     return interactions
 
 
-# --- 06/27/2024 @mavinquiet
-def get_count_data(counts_file_path, meta_file_path):
-    ''' Obtain count data
-    input:
-        counts_file_path(str): log-normalized count matrix path
-        meta_file_path(str): metadata file path that contains cell labels
-    output:
-        counts_df(pd.DataFrame): counts dataframe
-        labels_df(pd.DataFrame): labels information
-    '''
-    filename, file_extension = os.path.splitext(counts_file_path)
-    if file_extension == '.h5ad':
-        counts_df = anndata.read_h5ad(counts_file_path).to_df()
-    if file_extension == '.tsv':
-        counts_df = pd.read_csv(counts_file_path, sep='\t', header=0, index_col=0).T
-    if file_extension == '.csv':
-        counts_df = pd.read_csv(counts_file_path, sep=',', header=0, index_col=0).T
-    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0, header=None)
-    labels_df.columns = ['cell_type']
-    labels_df.index.name = 'barcode_sample'
-    return counts_df, labels_df
-# --- end
-
-
-def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_type, meta_key=None, select_list=[]):
+def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_type, meta_key=None, select_list=[], filter_=False):
 
     '''
     input:
@@ -94,15 +70,7 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     ### interactions, counts, labels  ##
     interactions = get_interactions(cpdb_file_path, select_list)
     start = timeit.default_timer()
-    #counts = anndata.read_h5ad(counts_file_path)#.to_df()
-    filename, file_extension = os.path.splitext(counts_file_path)
-    if file_extension == '.h5ad':
-        counts = anndata.read_h5ad(counts_file_path).to_df()
-    if file_extension == '.tsv':
-        counts = pd.read_csv(counts_file_path, sep='\t', header=0, index_col=0).T
-    if file_extension == '.csv':
-        counts = pd.read_csv(counts_file_path, sep=',', header=0, index_col=0).T
-
+    counts = anndata.read_h5ad(counts_file_path)#.to_df()
     stop = timeit.default_timer()
     print('Read Time: ', stop - start) 
     
@@ -110,17 +78,19 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     current_memory = get_current_memory()
     print("reading_count\t{:.2f}MB".format(current_memory))
     #MMMMM
+    # 0815 add:
+    if filter_:
+        sc.pp.filter_cells(adata, min_counts=1)
+        sc.pp.filter_genes(adata, min_cells=1)
+
     
-    #if meta_key is not None:
-    #    labels_df = pd.DataFrame(counts.obs[meta_key])
-    #    labels_df.columns = ['cell_type']
-    #    labels_df.index.name = 'barcode_sample'
-    #else:
-    #    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0)
-    labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0, header=None)
-    labels_df.columns = ['cell_type']
-    labels_df.index.name = 'barcode_sample'
- 
+    if meta_key is not None:
+        labels_df = pd.DataFrame(counts.obs[meta_key])
+        labels_df.columns = ['cell_type']
+        labels_df.index.name = 'barcode_sample'
+    else:
+        labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0)
+    
     '''
     interactions(pandas.DataFrame):
     =======================================================
@@ -163,6 +133,9 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     ##########################
 
 
+   
+
+
     ######################################################################
     #                      2.Counts DF preprocess                        #
     ######################################################################
@@ -176,13 +149,11 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     select_columns = []
     columns_names = []
     for foo, boo in zip(tmp.index, tmp[convert_type]):
-        #if boo in counts.var_names:#counts.columns:
-        if boo in counts.columns:
+        if boo in counts.var_names:#counts.columns:
             select_columns.append(boo)
             columns_names.append(foo)
 
-    #reduced_counts = counts[:, select_columns].to_df()
-    reduced_counts = counts.loc[:, select_columns]
+    reduced_counts = counts[:, select_columns].to_df()
     reduced_counts.columns = columns_names
     reduced_counts = reduced_counts.groupby(reduced_counts.columns, axis=1).mean()
     ######################################
