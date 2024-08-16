@@ -11,6 +11,130 @@ from . import dist_iid_set
 from . import dist_complex 
 from . import dist_lr
 import warnings
+import datetime
+import os
+from .cauchy_combine import cauthy_combine
+
+def __save_file(
+    interactions_strength, 
+    pvals, 
+    percents_analysis, 
+    save_path, 
+    timestamp = None,
+    method_key = ''
+):
+    assert os.path.isdir(save_path), "{save_path} doesn't exist or not a dir"
+    if timestamp is None:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+    interactions_strength.to_csv(
+        os.path.join(save_path, f"{timestamp}_{method_key}_interactions_strength.csv"))
+    pvals.to_csv(
+        os.path.join(save_path, f"{timestamp}_{method_key}_pvals.csv"))
+    percents_analysis.to_csv(
+        os.path.join(save_path, f"{timestamp}_{method_key}_percents_analysis.csv"))
+
+
+def Cauchy_combination_of_statistical_analysis_methods(
+    database_file_path,
+    celltype_file_path,
+    counts_file_path,
+    convert_type = 'hgnc_symbol',
+    cluster_distrib_method_list = ['Mean', 'Median', 'Q3', 'Quantile_0.9'],
+    complex_distrib_method_list = ['Minimum', 'Average'],
+    LR_distrib_method_list = ['Arithmetic', 'Geometric'],
+    min_percentile = 0.1,
+    save_path = None
+):
+    if save_path is None:
+        save_path = './results/'
+    assert not os.path.isdir(save_path), f"{save_path} exists. Our method needs to build a empty new dir."
+    os.system(f'mkdir {save_path}')
+    print(f'Results will be saved at {save_path}')
+
+    method_qt_dict = {
+        "Median": 0.5,
+        "Q2": 0.5,
+        "Q3": 0.75,
+    }
+
+    counts_df, labels_df, complex_table, interactions = preprocess.get_input_data(
+        database_file_path, 
+        celltype_file_path,
+        counts_file_path,
+        convert_type
+    )
+
+    for (cluster_distrib_method, complex_distrib_method, LR_distrib_method) in itertools.product(
+        cluster_distrib_method_list, 
+        complex_distrib_method_list, 
+        LR_distrib_method_list
+    ):
+        method_key = f'{cluster_distrib_method}_{complex_distrib_method}_{LR_distrib_method}'
+        current_min_percentile = min_percentile
+        print(f"Running:\n-> {cluster_distrib_method} for celltype cluster.\n"
+            + f"-> {complex_distrib_method} for complex proteins.\n"
+            + f"-> {LR_distrib_method} for L-R score.\n"
+            + f"-> Percentile is {current_min_percentile}.")
+
+
+        if cluster_distrib_method.startswith('Quantile_'):
+            try:
+                quantile = float(cluster_distrib_method.split('_')[-1])
+                method_qt_dict["Quantile"] = quantile
+                cluster_distrib_method = "Quantile"
+            except ValueError:
+                print('Quantile parameter in cluster_distrib_metho_list should be e.g. "Quantile_0.9"')
+                raise ValueError
+        
+        if cluster_distrib_method in ["Median", "Q2", "Q3", "Quantile"]:
+            quantile = method_qt_dict[cluster_distrib_method]
+            cluster_distrib_method = 'Quantile'
+            assert quantile < 1 and quantile > 0, "The quantile should be within the range (0, 1)."
+            if quantile < 0.5:
+                warnings.warn(f"Invalid quantile: {quantile}. The quantile is too low to be effective.", UserWarning)
+            current_min_percentile = max(current_min_percentile, 1-quantile)
+            print(f"-> Adjusted percentile is {current_min_percentile}")
+            
+        # Stage I : calculate L-R expression score:
+        ## Scores for clusters
+        if cluster_distrib_method == 'Mean':
+            mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
+        elif cluster_distrib_method == 'Quantile':
+            mean_counts = score.calculate_cluster_quantile(counts_df, labels_df, quantile)
+        ## Scores for complex
+        if complex_distrib_method == 'Minimum':
+            complex_func = score.calculate_complex_min_func
+        elif complex_distrib_method == 'Average':
+            complex_func = score.calculate_complex_mean_func
+        mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, score.calculate_complex_min_func)
+        ## Scores for L-R expression
+        interactions_strength = score.calculate_interactions_strength(mean_counts, interactions, method=LR_distrib_method)
+        
+        # Stage II : Percentages
+        percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
+        percents_analysis = analyze_interactions_percents(percents, interactions, threshold=current_min_percentile)
+
+        # Stage III : Null Distribution
+        if cluster_distrib_method == 'Mean':
+            mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)
+        elif cluster_distrib_method == 'Quantile':
+            mean_pmfs = dist_iid_set.calculate_cluster_quantile_distribution(counts_df, labels_df, quantile)
+        if complex_distrib_method == 'Minimum':
+            complex_func = dist_complex.get_minimum_distribution
+        elif complex_distrib_method == 'Average':
+            complex_func = dist_complex.get_average_distribution
+        mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
+        
+        # Stage IV : P-values
+        pvals = dist_lr.calculate_key_interactions_pvalue(
+            mean_pmfs, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
+        )
+
+        __save_file(interactions_strength, pvals, percents_analysis, save_path, method_key=method_key)
+    
+    cauthy_combine(save_path)
+
 
 
 
