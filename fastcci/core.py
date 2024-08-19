@@ -44,7 +44,10 @@ def Cauchy_combination_of_statistical_analysis_methods(
     complex_distrib_method_list = ['Minimum', 'Average'],
     LR_distrib_method_list = ['Arithmetic', 'Geometric'],
     min_percentile = 0.1,
-    save_path = None
+    save_path = None,
+    meta_key=None, 
+    select_list=[], 
+    filter_=False
 ):
     if save_path is None:
         save_path = './results/'
@@ -62,7 +65,10 @@ def Cauchy_combination_of_statistical_analysis_methods(
         database_file_path, 
         celltype_file_path,
         counts_file_path,
-        convert_type
+        convert_type,
+        meta_key = meta_key,
+        select_list = select_list,
+        filter_ = filter_
     )
 
     for (cluster_distrib_method, complex_distrib_method, LR_distrib_method) in itertools.product(
@@ -149,7 +155,10 @@ def statistical_analysis_method(
     LR_distrib_method = 'Arithmetic',
     quantile = 0.9,
     min_percentile = 0.1,
-    style = None
+    style = None,
+    meta_key=None, 
+    select_list=[], 
+    filter_=False
     
 ):
     method_qt_dict = {
@@ -177,7 +186,10 @@ def statistical_analysis_method(
         database_file_path, 
         celltype_file_path,
         counts_file_path,
-        convert_type
+        convert_type,
+        meta_key = meta_key,
+        select_list = select_list,
+        filter_ = filter_
     )
     
     # Stage I : calculate L-R expression score:
