@@ -71,6 +71,7 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     interactions = get_interactions(cpdb_file_path, select_list)
     start = timeit.default_timer()
     counts = anndata.read_h5ad(counts_file_path)#.to_df()
+    counts.var_names_make_unique()
     stop = timeit.default_timer()
     print('Read Time: ', stop - start) 
     
