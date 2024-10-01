@@ -9,6 +9,7 @@ out_path = 'results/method1'
 import pandas as pd
 import numpy as np
 import anndata
+import scanpy as sc
 import os
 from . import preproc_utils
 from .ccc_utils import get_current_memory
@@ -81,8 +82,8 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     #MMMMM
     # 0815 add:
     if filter_:
-        sc.pp.filter_cells(adata, min_counts=1)
-        sc.pp.filter_genes(adata, min_cells=1)
+        sc.pp.filter_cells(counts, min_counts=1)
+        sc.pp.filter_genes(counts, min_cells=1)
 
     
     if meta_key is not None:
