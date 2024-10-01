@@ -73,6 +73,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
     )
 
     for cluster_distrib_method in cluster_distrib_method_list:
+        cluster_distrib_key = cluster_distrib_method
         current_min_percentile = min_percentile
         # check input
         if cluster_distrib_method.startswith('Quantile_'):
@@ -125,7 +126,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
         
 
             for LR_distrib_method in LR_distrib_method_list:
-                method_key = f'{cluster_distrib_method}_{complex_distrib_method}_{LR_distrib_method}'
+                method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
 
                 print(f"Running:\n-> {cluster_distrib_method} for celltype cluster.\n"
                     + f"-> {complex_distrib_method} for complex proteins.\n"
