@@ -157,7 +157,9 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
 
     reduced_counts = counts[:, select_columns].to_df()
     reduced_counts.columns = columns_names
-    reduced_counts = reduced_counts.groupby(reduced_counts.columns, axis=1).mean()
+    reduced_counts = reduced_counts.T.groupby(reduced_counts.columns).mean().T
+    # FutureWarning: DataFrame.groupby with axis=1 is deprecated. Do `frame.T.groupby(...)` without axis instead.
+    # reduced_counts = reduced_counts.groupby(reduced_counts.columns, axis=1).mean()
     ######################################
     
     
