@@ -68,7 +68,7 @@ class Distribution:
         samples: Union[np.ndarray, None] = None,
         pmf_array: Union[np.ndarray, None] = None, 
         is_align: Union[bool, None] = None,
-        eps: float = 1e-7
+        eps: float = 1e-4
     ):
         if dtype in ['normal', 'gaussian']:
             assert loc is not None and scale is not None
