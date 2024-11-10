@@ -11,6 +11,7 @@ from typing import Literal, Union
 from functools import lru_cache
 
 from tqdm import tqdm
+from loguru import logger
 
 precision = 0.01 
 max_value_4_log1p = 14
@@ -80,8 +81,8 @@ class Distribution:
             assert pmf_array is not None and is_align is not None
             pmf_array = np.trim_zeros(pmf_array, trim='b')
             assert np.abs(1 - np.sum(pmf_array)) < eps, f"The sum of PMF is {np.sum(pmf_array)} not 1."
-            if np.abs(1 - np.sum(pmf_array)) >= eps:
-                print(f"The sum of PMF is {np.sum(pmf_array)} not 1.")
+            # if np.abs(1 - np.sum(pmf_array)) >= eps:
+            #     print(f"The sum of PMF is {np.sum(pmf_array)} not 1.")
             
         self.loc = loc
         self.scale = scale
@@ -490,8 +491,30 @@ def get_fxi_cdf(n, i):
         fxi /= np.sum(fxi)
     return np.cumsum(fxi)
 
+
+def split_integer_by_probability(N, probabilities):
+    # 转换为 numpy 数组以便快速计算
+    probabilities = np.array(probabilities)
+    
+    # 计算浮点期望值
+    targets = N * probabilities
+    
+    # 取整数部分并计算误差
+    integer_parts = np.floor(targets).astype(int)
+    sum_integer_parts = np.sum(integer_parts)
+    error = N - sum_integer_parts
+    
+    # 计算小数部分，并按从大到小排序
+    fractional_parts = targets - integer_parts
+    indices = np.argsort(-fractional_parts)  # 按小数部分降序排列索引
+    
+    # 根据误差调整
+    for i in range(error):
+        integer_parts[indices[i]] += 1
+    
+    return integer_parts.tolist()
             
-def get_quantile_pmf_for_n_iid_distribution(distribution, n, quantile=0.9):
+def get_quantile_pmf_for_n_iid_distribution(distribution, n, quantile=0.9, log=False):
     '''
     $
     f_{X_i} = \frac{n!}{(n-i)!(i-1)!} 
@@ -504,8 +527,7 @@ def get_quantile_pmf_for_n_iid_distribution(distribution, n, quantile=0.9):
     i = max(int(quantile*(n-1) + 1), 1)
     fxi_cdf = get_fxi_cdf(n, i)
 
-    section = np.round((m+1) * distribution.pmf)
-    section[0] = m + 1 - np.sum(section[1:])
+    section = split_integer_by_probability(m+1, distribution.pmf)
     section = np.int32(np.cumsum(section))
     cdf = fxi_cdf[section-1]
     pmf = np.diff(cdf, prepend=0)
