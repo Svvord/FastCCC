@@ -81,7 +81,7 @@ class Distribution:
             assert pmf_array is not None and is_align is not None
             pmf_array = np.trim_zeros(pmf_array, trim='b')
             assert np.abs(1 - np.sum(pmf_array)) < eps, f"The sum of PMF is {np.sum(pmf_array)} not 1."
-            # if np.abs(1 - np.sum(pmf_array)) >= eps:
+            # if np.abs(1 - np.sum(pmf_array)) >= 1e-7:
             #     print(f"The sum of PMF is {np.sum(pmf_array)} not 1.")
             
         self.loc = loc
@@ -135,8 +135,14 @@ class Distribution:
             
     def get_pmf_array(self):
         if self.pmf_array is None: # which is a normal distribution
-            pdf = norm.pdf(pmf_bins, loc=self.loc, scale=self.scale)
-            self.pmf_array = pdf / np.sum(pdf)
+            # >>>>>>>>>>> update precision >>>>>>>>>> #
+            # old version:
+            # pdf = norm.pdf(pmf_bins, loc=self.loc, scale=self.scale)
+            # self.pmf_array = pdf / np.sum(pdf)
+            # new version: 
+            cdf = norm.cdf(pmf_bins, loc=self.loc, scale=self.scale)
+            self.pmf_array = np.diff(cdf, prepend=0)
+            # <<<<<<<<<<< update precision <<<<<<<<<< #
             self.pmf_array = np.trim_zeros(self.pmf_array, trim='b')
         return self.pmf_array
         
@@ -196,7 +202,8 @@ class Distribution:
         cdf = self.get_cdf_array()
         bins = pmf_int_bins * n
         n_cut = np.sum(bins < len(cdf))
-        average_pmf_array = np.diff(cdf[bins[:n_cut]], prepend=0)
+        # 增加 append 1.0，修正可能的bug
+        average_pmf_array = np.diff(np.append(cdf[bins[:n_cut]], 1.0), prepend=0)
         average_pmf =  Distribution(dtype='other', pmf_array=average_pmf_array, is_align=True)
         
         # 为了精确 打得补丁
