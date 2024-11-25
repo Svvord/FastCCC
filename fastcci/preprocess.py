@@ -1,11 +1,3 @@
-cpdb_file_path = './db/mydb'
-meta_file_path = './data/data_tutorial/metadata.tsv'
-counts_file_path = './data/data_tutorial/normalised_log_counts.h5ad'
-convert_type = 'hgnc_symbol'
-
-microenvs_file_path = 'data/data_tutorial/microenvironment.tsv'
-out_path = 'results/method1'
-
 import pandas as pd
 import numpy as np
 import anndata
@@ -14,6 +6,7 @@ import os
 from . import preproc_utils
 from .ccc_utils import get_current_memory
 import timeit
+from loguru import logger
 
 
 def get_interactions(cpdb_file_path, select_list=[]):
@@ -74,11 +67,11 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     counts = anndata.read_h5ad(counts_file_path)#.to_df()
     counts.var_names_make_unique()
     stop = timeit.default_timer()
-    print('Read Time: ', stop - start) 
+    logger.debug(f'Read Time: {stop - start}') 
     
     #MMMMM
     current_memory = get_current_memory()
-    print("reading_count\t{:.2f}MB".format(current_memory))
+    logger.debug("reading_count: {:.2f}MB".format(current_memory))
     #MMMMM
     # 0815 add:
     if filter_:
@@ -263,7 +256,7 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     
     #MMMMM
     current_memory = get_current_memory()
-    print("get_input_data_peak\t{:.2f}MB".format(current_memory))
+    logger.debug("get_input_data_peak: {:.2f}MB".format(current_memory))
     #MMMMM
     
     ######################################################################

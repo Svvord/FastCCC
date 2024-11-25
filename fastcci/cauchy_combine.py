@@ -5,35 +5,18 @@ import getopt
 import numpy as np
 import pandas as pd
 import pickle as pkl
+from loguru import logger
 
-# usage='Usage:'+sys.argv[0]
-# usage+='''<Required>[Options]
-#     <Required>
-#     -d --fastCCI_dir directory that contains fastCCI results
-# '''
-
-# if len(sys.argv) < 2 or not sys.argv[1].startswith('-'):
-#     sys.exit(usage)
-
-
-# optlist,alist=getopt.getopt(sys.argv[1:],
-#                             'hd:',
-#                             [
-#                                 'help=',
-#                                 'fastCCI_dir='
-#                             ])
-# for opt, arg in optlist:
-#     if opt in ['-h', '--help']:
-#         sys.exit(usage)
-#     elif opt in ['-d', '--fastCCI_dir']:
-#         fastCCI_dir = arg
-
-
-# # TODO: for debug purpose
-# #fastCCI_dir = "/net/mulan/home/wenjinma/projects/FastCCI-benchmark/simdata/PDAC/simulated_dataset1/tools/fastCCI/output"
-
-def cauthy_combine(fastCCI_dir):
-    pval_paths = glob.glob(fastCCI_dir+os.sep+'*pvals.csv')
+def cauthy_combine(fastCCI_dir, task_id=None):
+    if task_id is None:
+        logger.warning("No task_id is provided, all pvals files will be combined.")
+        pval_paths = glob.glob(fastCCI_dir+os.sep+'*pvals.csv')
+    else:
+        logger.info(f"Task ID for combining is :{task_id}")
+        pval_paths = glob.glob(fastCCI_dir+os.sep+f'{task_id}*pvals.csv')
+    logger.info(f"There are {len(pval_paths)} pval files.")
+    joined_path = '\n'.join(pval_paths)
+    logger.debug(f"\n{joined_path}")
 
     ct_pairs, cpis = None, None
     comb_dict = dict()
@@ -61,8 +44,12 @@ def cauthy_combine(fastCCI_dir):
     T_df = pd.DataFrame(T, index=ct_pairs, columns=cpis)
     P_df = pd.DataFrame(P, index=ct_pairs, columns=cpis)
 
-    T_df.to_csv(fastCCI_dir+os.sep+'Cauchystats.csv')
-    P_df.to_csv(fastCCI_dir+os.sep+'Cauchypvals.csv')
+    if task_id is None:
+        T_df.to_csv(fastCCI_dir+os.sep+'Cauchystats.csv')
+        P_df.to_csv(fastCCI_dir+os.sep+'Cauchypvals.csv')
+    else:
+        T_df.to_csv(fastCCI_dir+os.sep+f'{task_id}_Cauchystats.csv')
+        P_df.to_csv(fastCCI_dir+os.sep+f'{task_id}_Cauchypvals.csv')
 
 # if __name__ == "__main__":
 #     cauthy_combine(fastCCI_dir)

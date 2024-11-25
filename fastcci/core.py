@@ -14,12 +14,26 @@ import warnings
 import datetime
 import os
 from .cauchy_combine import cauthy_combine
+import uuid
+from loguru import logger
+
+def generate_task_id(length=6):
+    unique_part = uuid.uuid4().hex[:length]
+    return unique_part
+
+def mkdir(directory_path):
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+        logger.info(f"Directory created: {directory_path}")
+    else:
+        logger.info(f"Directory already exists: {directory_path}")
 
 def __save_file(
     interactions_strength, 
     pvals, 
     percents_analysis, 
     save_path, 
+    task_id,
     timestamp = None,
     method_key = ''
 ):
@@ -28,11 +42,11 @@ def __save_file(
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
     interactions_strength.to_csv(
-        os.path.join(save_path, f"{timestamp}_{method_key}_interactions_strength.csv"))
+        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_interactions_strength.csv"))
     pvals.to_csv(
-        os.path.join(save_path, f"{timestamp}_{method_key}_pvals.csv"))
+        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_pvals.csv"))
     percents_analysis.to_csv(
-        os.path.join(save_path, f"{timestamp}_{method_key}_percents_analysis.csv"))
+        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_percents_analysis.csv"))
 
 
 def Cauchy_combination_of_statistical_analysis_methods(
@@ -50,11 +64,15 @@ def Cauchy_combination_of_statistical_analysis_methods(
     filter_ = False,
     use_DEG = False
 ):
-    # if save_path is None:
-    #     save_path = './results/'
-    # assert not os.path.isdir(save_path), f"{save_path} exists. Our method needs to build a empty new dir."
-    # os.system(f'mkdir {save_path}')
-    print(f'Results will be saved at {save_path}')
+    # Generate unique task ID.
+    task_id = generate_task_id()
+    logger.info(f"Task id is {task_id}.")
+
+    # Set save directory.
+    if save_path is None:
+        save_path = './results/'
+        logger.info(f"Results will be saved to \"{save_path}\".")
+    mkdir(save_path)
 
     method_qt_dict = {
         "Median": 0.5,
@@ -71,6 +89,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
         select_list = select_list,
         filter_ = filter_
     )
+    logger.success("Data preprocessing done.")
 
     for cluster_distrib_method in cluster_distrib_method_list:
         cluster_distrib_key = cluster_distrib_method
@@ -91,7 +110,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
             if quantile < 0.5:
                 warnings.warn(f"Invalid quantile: {quantile}. The quantile is too low to be effective.", UserWarning)
             current_min_percentile = max(current_min_percentile, 1-quantile)
-            print(f"-> Adjusted percentile is {current_min_percentile}")
+            logger.debug(f"Adjusted percentile is {current_min_percentile}")
 
         # Stage I : Percentages
         percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
@@ -128,7 +147,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
             for LR_distrib_method in LR_distrib_method_list:
                 method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
 
-                print(f"Running:\n-> {cluster_distrib_method} for celltype cluster.\n"
+                logger.info(f"Running:\n-> {cluster_distrib_key} for celltype cluster.\n"
                     + f"-> {complex_distrib_method} for complex proteins.\n"
                     + f"-> {LR_distrib_method} for L-R score.\n"
                     + f"-> Percentile is {current_min_percentile}.")
@@ -140,9 +159,11 @@ def Cauchy_combination_of_statistical_analysis_methods(
                 pvals = dist_lr.calculate_key_interactions_pvalue(
                     mean_pmfs_with_complex, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
                 )
-                __save_file(interactions_strength, pvals, percents_analysis, save_path, method_key=method_key)        
-    
-    cauthy_combine(save_path)
+                __save_file(interactions_strength, pvals, percents_analysis, save_path, task_id=task_id, method_key=method_key)
+                logger.success("CCI branch calculation done.")      
+    logger.success("All CCI branches calculation done.")  
+    cauthy_combine(save_path, task_id=task_id)
+    logger.success("Cauthy combination done.") 
 
     if use_DEG:
         mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
@@ -151,9 +172,10 @@ def Cauchy_combination_of_statistical_analysis_methods(
         mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)
         complex_func = dist_complex.get_minimum_distribution
         mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
-        pvals = pd.read_csv(os.path.join(save_path, 'Cauchypvals.csv'), index_col=0)
+        pvals = pd.read_csv(os.path.join(save_path, f'{task_id}_Cauchypvals.csv'), index_col=0)
         pvals = check_key_interactions_pvalue_by_DEG(mean_counts, mean_pmfs, interactions, pvals)
-        pvals.to_csv(os.path.join(save_path, 'Cauchy_with_DEG_pvals.csv'))
+        pvals.to_csv(os.path.join(save_path, f'{task_id}_Cauchy_with_DEG_pvals.csv'))
+        logger.success("DEGs selection done.")
 
 
 
