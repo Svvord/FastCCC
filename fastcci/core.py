@@ -16,6 +16,7 @@ import os
 from .cauchy_combine import cauthy_combine
 import uuid
 from loguru import logger
+import glob
 
 def generate_task_id(length=6):
     unique_part = uuid.uuid4().hex[:length]
@@ -176,6 +177,19 @@ def Cauchy_combination_of_statistical_analysis_methods(
         pvals = check_key_interactions_pvalue_by_DEG(mean_counts, mean_pmfs, interactions, pvals)
         pvals.to_csv(os.path.join(save_path, f'{task_id}_Cauchy_with_DEG_pvals.csv'))
         logger.success("DEGs selection done.")
+
+    file_list = glob.glob(f'{save_path}/{task_id}*interactions_strength.csv')
+    logger.info(f"Integrating {len(file_list)} interactions_strength files.")
+    average_strength_df = None
+    for item in file_list:
+        strength_df = pd.read_csv(item, index_col=0)
+        if average_strength_df is None:
+            average_strength_df = strength_df.copy()
+        else:
+            average_strength_df += strength_df.copy()
+    average_strength_df = average_strength_df / len(file_list)
+    average_strength_df.to_csv(os.path.join(save_path, f'{task_id}_average_interactions_strength.csv'))
+    logger.success("Average communication score calculation done.")
 
 
 

@@ -19,6 +19,8 @@ poetry add pandas
 poetry add scipy
 poetry add scanpy
 poetry add loguru
+poetry add openpyxl
+poetry add gseapy
 
 poetry add ipykernel -G dev
 poetry add matplotlib -G dev
