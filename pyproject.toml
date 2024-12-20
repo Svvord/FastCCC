@@ -6,7 +6,7 @@ authors = ["Svvord <cchousiyu@163.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11, <3.13"
 numpy = "^1.24"
 pandas = "^2.2.3"
 scipy = "^1.14.1"
@@ -20,6 +20,7 @@ gseapy = "^1.1.4"
 ipykernel = "^6.29.5"
 matplotlib = "^3.9.2"
 seaborn = "^0.13.2"
+cellxgene-census = "^1.16.2"
 
 [build-system]
 requires = ["poetry-core"]

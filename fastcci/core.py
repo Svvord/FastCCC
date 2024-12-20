@@ -136,7 +136,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
                 complex_func = score.calculate_complex_min_func
             elif complex_distrib_method == 'Average':
                 complex_func = score.calculate_complex_mean_func
-            mean_counts_with_complex = score.combine_complex_distribution_df(mean_counts, complex_table, score.calculate_complex_min_func)
+            mean_counts_with_complex = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
             ## Pmfs for complex
             if complex_distrib_method == 'Minimum':
                 complex_func = dist_complex.get_minimum_distribution
@@ -169,7 +169,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
     if use_DEG:
         mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
         complex_func = score.calculate_complex_min_func
-        mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, score.calculate_complex_min_func)
+        mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
         mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)
         complex_func = dist_complex.get_minimum_distribution
         mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
@@ -210,14 +210,30 @@ def statistical_analysis_method(
     meta_key=None, 
     select_list=[], 
     filter_= False,
-    use_DEG = False
+    use_DEG = False,
+    save_path = None
 ):
+    # Generate unique task ID.
+    task_id = generate_task_id()
+    logger.info(f"Task id is {task_id}.")
+
+    # Set save directory.
+    if save_path is None:
+        save_path = './results/'
+        logger.info(f"Results will be saved to \"{save_path}\".")
+    mkdir(save_path)
+
     method_qt_dict = {
         "Median": 0.5,
         "Q2": 0.5,
         "Q3": 0.75,
         "Quantile": quantile
     }
+
+    cluster_distrib_key = cluster_distrib_method
+    if cluster_distrib_method == 'Quantile':
+        cluster_distrib_key = f'Quantile_{quantile}'
+
     if cluster_distrib_method in ["Median", "Q2", "Q3", "Quantile"]:
         quantile = method_qt_dict[cluster_distrib_method]
         cluster_distrib_method = 'Quantile'
@@ -232,6 +248,10 @@ def statistical_analysis_method(
         cluster_distrib_method = 'Mean'
         complex_distrib_method = 'Minimum'
         LR_distrib_method = 'Arithmetic'
+        min_percentile = 0.1
+
+    method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
+    
         
     counts_df, labels_df, complex_table, interactions = preprocess.get_input_data(
         database_file_path, 
@@ -242,6 +262,13 @@ def statistical_analysis_method(
         select_list = select_list,
         filter_ = filter_
     )
+    logger.success("Data preprocessing done.")
+
+
+    logger.info(f"Running:\n-> {cluster_distrib_key} for celltype cluster.\n"
+                    + f"-> {complex_distrib_method} for complex proteins.\n"
+                    + f"-> {LR_distrib_method} for L-R score.\n"
+                    + f"-> Percentile is {min_percentile}.")
     
     # Stage I : calculate L-R expression score:
     ## Scores for clusters
@@ -254,7 +281,7 @@ def statistical_analysis_method(
         complex_func = score.calculate_complex_min_func
     elif complex_distrib_method == 'Average':
         complex_func = score.calculate_complex_mean_func
-    mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, score.calculate_complex_min_func)
+    mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
     ## Scores for L-R expression
     interactions_strength = score.calculate_interactions_strength(mean_counts, interactions, method=LR_distrib_method)
     
@@ -277,9 +304,14 @@ def statistical_analysis_method(
     pvals = dist_lr.calculate_key_interactions_pvalue(
         mean_pmfs, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
     )
+    logger.success("FastCCI calculation done.")
+
+    __save_file(interactions_strength, pvals, percents_analysis, save_path, task_id=task_id, method_key=method_key)
 
     if use_DEG:
         pvals = check_key_interactions_pvalue_by_DEG(mean_counts, mean_pmfs, interactions, pvals)
+        pvals.to_csv(os.path.join(save_path, f'{task_id}_DEG_pvals.csv'))
+        logger.success("DEGs selection done.")
 
     return interactions_strength, pvals, percents_analysis
 
@@ -562,7 +594,7 @@ def calculate_cluster_percents(counts_df, labels_df, complex_table):
     
     counts_df = counts_df > 0
     counts_df_with_labels = counts_df.merge(labels_df, left_index=True, right_index=True)
-    mean_counts = counts_df_with_labels.groupby('cell_type').mean()
+    mean_counts = counts_df_with_labels.groupby('cell_type', as_index=True, observed=True).mean()
 
     # complex count dataframe 
     def create_complex_count_func(x):

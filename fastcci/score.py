@@ -61,7 +61,7 @@ def calculate_cluster_mean(counts_df, labels_df):
 
     ############################################################
     counts_df_with_labels = counts_df.merge(labels_df, left_index=True, right_index=True)
-    mean_counts = counts_df_with_labels.groupby('cell_type', as_index=True).mean()
+    mean_counts = counts_df_with_labels.groupby('cell_type', as_index=True, observed=True).mean()
     return mean_counts
 
 
@@ -125,7 +125,7 @@ def calculate_cluster_quantile(counts_df, labels_df, qt=0.9):
 
     counts_df_with_labels = counts_df.merge(labels_df, left_index=True, right_index=True)
     # mean_counts = counts_df_with_labels.groupby('cell_type').quantile(qt)
-    mean_counts = counts_df_with_labels.groupby('cell_type').apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns))
+    mean_counts = counts_df_with_labels.groupby('cell_type', observed=True).apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns))
     if 'cell_type' in mean_counts:
         mean_counts.drop(columns=['cell_type'], inplace=True)
     return mean_counts

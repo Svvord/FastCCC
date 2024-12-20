@@ -25,4 +25,5 @@ poetry add gseapy
 poetry add ipykernel -G dev
 poetry add matplotlib -G dev
 poetry add seaborn -G dev
+poetry add cellxgene-census -G dev # 要修改python版本条件，cellxgene目前不支持python>=3.13
 ```
