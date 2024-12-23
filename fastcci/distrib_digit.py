@@ -15,7 +15,7 @@ from loguru import logger
 
 n_bins = 50
 precision = 0.01
-n_fft = 30
+n_fft = 100
 pmf_bins = np.arange(0, n_bins+precision - 1e-10, precision)
 pmf_int_bins = np.arange(len(pmf_bins))
 
