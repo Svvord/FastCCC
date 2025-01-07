@@ -11,6 +11,7 @@ import pickle
 import itertools
 from scipy.stats import norm
 import os
+import tomllib
 
 precision = 0.01
 
@@ -76,7 +77,7 @@ def get_valid_pval_pmfs(mean_pmfs, interactions_strength, interactions, percents
 
     return pval_pmfs
 
-def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, k=2.59, debug_mode=False):
+def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, k=2.59, debug_mode=False):
     assert os.path.exists(reference_path), "Reference dir doesn't exist."
     logger.info("Loading reference data.")
     with open(f'{reference_path}/complex_table.pkl', 'rb') as f:
@@ -85,9 +86,6 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ref_interactions = pickle.load(f)
     with open(f'{reference_path}/ref_gene_pmf_dict.pkl', 'rb') as f:
         ref_gene_pmf_dict = pickle.load(f)
-    with open(f'{reference_path}/ref_min_percentile.txt', 'rt') as f:
-        min_percentile = float(f.readline().strip())
-        logger.info(f"Ref min_percentile is loaded as {min_percentile}")
     ref_pvals = pd.read_csv(f'{reference_path}/ref_pvals.txt', sep='\t', index_col=0)
     ref_p1 = pd.read_csv(f'{reference_path}/ref_interactions_strength_L.txt', sep='\t', index_col=0)
     ref_p2 = pd.read_csv(f'{reference_path}/ref_interactions_strength_R.txt', sep='\t', index_col=0)
@@ -121,7 +119,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     # filtering use ref
     complex_table = complex_table.loc[[item for item in complex_table.index if item in ref_complex_table.index]]
     interactions = interactions.loc[[item for item in interactions.index if item in ref_interactions.index]]
-    L_perc, R_perc, percents_analysis = calculate_L_R_and_IS_percents(percents, interactions, threshold=min_percentile)
+    L_perc, R_perc, percents_analysis = calculate_L_R_and_IS_percents(percents, interactions, threshold=config['min_percentile'])
     interactions_strength = interactions_strength.loc[percents_analysis.index, percents_analysis.columns]
     null_interactions_strength = null_interactions_strength.loc[percents_analysis.index, percents_analysis.columns]
     p1 = p1.loc[percents_analysis.index, percents_analysis.columns]
@@ -272,6 +270,10 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         print(f"Intersection:{intersection}, Union:{union}")
         print(f"#Pred.Sig:{np.sum(prediction)}, #Real.Sig:{np.sum(real_pvals_values < 0.05)}, #valid:{len(real_pvals_values)}")
         print(f"Precision:{intersection/np.sum(prediction)}, IoU:{intersection/union}, Recall:{intersection/np.sum(real_pvals_values < 0.05)}")
+        with open(f'{save_path}/debug_results.txt', 'wt') as f:
+            f.write(f"Intersection:{intersection}, Union:{union}\n")
+            f.write(f"#Pred.Sig:{np.sum(prediction)}, #Real.Sig:{np.sum(real_pvals_values < 0.05)}, #valid:{len(real_pvals_values)}\n")
+            f.write(f"Precision:{intersection/np.sum(prediction)}, IoU:{intersection/union}, Recall:{intersection/np.sum(real_pvals_values < 0.05)}\n")
 
         est_by_ref = np.array(est_by_ref)
         print(f"#by_null: {np.sum(1 - est_by_ref)}, #by_ref: {np.sum(est_by_ref)}")
@@ -280,6 +282,9 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         intersection = np.sum(np.logical_and(prediction, real_pvals_values < 0.05))
         union = np.sum(np.logical_or(prediction, real_pvals_values < 0.05))
         print(f"Real Prec:{intersection/np.sum(prediction)}, Real IoU:{intersection/union}, Real Recall:{intersection/np.sum(real_pvals_values < 0.05)}")
+        with open(f'{save_path}/debug_results.txt', 'at') as f:
+            f.write(f"#by_null: {np.sum(1 - est_by_ref)}, #by_ref: {np.sum(est_by_ref)}\n")
+            f.write(f"Real Prec:{intersection/np.sum(prediction)}, Real IoU:{intersection/union}, Real Recall:{intersection/np.sum(real_pvals_values < 0.05)}")
         logger.success("Debug ends.")
 
 
@@ -330,7 +335,13 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
 
 
 def infer_query_workflow(database_file_path, reference_path, query_counts_file_path, celltype_file_path, save_path, meta_key=None, debug_mode=False):
-    logger.info(f"Start inferring by using CCI reference: {reference_path}")
+    
+    with open(f'{reference_path}/config.toml', 'rb') as f:
+        config = tomllib.load(f)
+        logger.info(f"Start inferring by using CCI reference: {config['reference_name']}")
+        logger.info(f"Reference min_percentile = {config['min_percentile']}")
+        logger.info(f"Reference LRI DB = {config['LRI_database']}")
+
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -364,7 +375,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     if debug_mode:
         logger.debug("Entering debug process")
         from .build_reference import fastcci_for_reference
-        fastcci_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, debug_mode=True)
+        fastcci_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], debug_mode=True)
         logger.debug("Debug ends.")
-    compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, k=k, debug_mode=debug_mode)
+    compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config=config, k=k, debug_mode=debug_mode)
     logger.success("Inference workflow done.")

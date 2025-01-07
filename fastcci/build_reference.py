@@ -325,8 +325,6 @@ def fastcci_for_reference(reference_name, save_path, counts_df, labels_df, compl
     # interactions_strength.to_csv(f'{save_path}/ref_interactions_strength.csv')
     p1.to_csv(f'{save_path}/ref_interactions_strength_L.txt', sep='\t')
     p2.to_csv(f'{save_path}/ref_interactions_strength_R.txt', sep='\t')
-    with open(f'{save_path}/ref_min_percentile.txt', 'wt') as f:
-        f.write(str(min_percentile))
     with open(f'{save_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
         pickle.dump(gene_pmf_dict, f)
     with open(f'{save_path}/complex_table.pkl', 'wb') as f:
@@ -348,8 +346,63 @@ def record_adjustment_info(adata, save_path):
     ref_hk.to_csv(f'{save_path}/ref_hk.txt', sep='\t')
 
 
+reference_config = {}
+
+from datetime import date
+
+def dumps(toml_dict, table=""):
+    document = []
+    for key, value in toml_dict.items():
+        match value:
+            case dict():
+                table_key = f"{table}.{key}" if table else key
+                document.append(
+                    f"\n[{table_key}]\n{_dumps_dict(value)}"
+                )
+            case _:
+                document.append(f"{key} = {_dumps_value(value)}")
+    return "\n".join(document)
+
+def _dumps_dict(toml_dict):
+    document = []
+    for key, value in toml_dict.items():
+        key = f'"{key}"'
+        document.append(f"{key} = {_dumps_value(value)}")
+    return "\n".join(document)
+
+def _dumps_value(value):
+    match value:
+        case bool():
+            return "true" if value else "false"
+        case float() | int():
+            return str(value)
+        case str():
+            return f'"{value}"'
+        case date():
+            return value.isoformat()
+        case list():
+            return f"[{', '.join(_dumps_value(v) for v in value)}]"
+        case _:
+            raise TypeError(
+                f"{type(value).__name__} {value!r} is not supported"
+            )
+
+def save_config(save_path):
+    logger.info("Saving reference config")
+    save_content = dumps(reference_config)
+    with open(f'{save_path}/config.toml', 'w') as f:
+        f.write(save_content) 
+
+
 def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1):
     logger.info(f"Start building CCI reference: {reference_name}")
+
+    reference_config['reference_name'] = reference_name
+    reference_config['min_percentile'] = min_percentile
+    if database_file_path.endswith('/'):
+        reference_config['LRI_database'] = database_file_path[:-1].split('/')[-1]
+    else:
+        reference_config['LRI_database'] = database_file_path.split('/')[-1]
 
     save_path = os.path.join(save_path, reference_name)
     if not os.path.exists(save_path):
@@ -372,9 +425,13 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
             assert barcode in labels_df.index, "The index of query data doesn't match the index of labels"
         labels_df = labels_df.loc[reference.obs_names, :]
     
+    ct_counter = Counter(labels_df['cell_type'])
+    reference_config['celltype'] = ct_counter
+    
     reference = rank_preprocess(reference)
     record_adjustment_info(reference, save_path)
     counts_df, complex_table, interactions = get_fastcci_input(reference, database_file_path)
     fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile)
+    save_config(save_path)
     logger.success(f"Reference '{reference_name}' is built.")
 
