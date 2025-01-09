@@ -12,6 +12,20 @@ import itertools
 from scipy.stats import norm
 import os
 import tomllib
+from collections import Counter
+from .distrib_digit import get_minimum_distribution_for_digit
+from . import dist_complex
+from . import dist_lr
+import json
+
+# logger.remove()  # 移除默认的日志处理器
+# logger.add(
+#     sink=lambda msg: print(msg.strip()),
+#     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
+#     colorize=True
+# )
+
+
 
 precision = 0.01
 
@@ -77,8 +91,73 @@ def get_valid_pval_pmfs(mean_pmfs, interactions_strength, interactions, percents
 
     return pval_pmfs
 
-def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, k=2.59, debug_mode=False):
+def get_ligand_receptor_summary(mean_counts, interactions):
+    p1_index = []
+    p2_index = []
+    all_index = []
+    for i in itertools.product(sorted(mean_counts.index), sorted(mean_counts.index)):
+        p1_index.append(i[0])
+        p2_index.append(i[1])
+        all_index.append('|'.join(i))
+    p1 = mean_counts.loc[p1_index, interactions['multidata_1_id']]
+    p2 = mean_counts.loc[p2_index, interactions['multidata_2_id']]
+    p1.columns = interactions.index
+    p2.columns = interactions.index
+    p1.index = all_index
+    p2.index = all_index
+    interactions_strength = (p1 + p2)/2 * (p1 > 0) * (p2>0)
+    return p1, p2, interactions_strength
+
+def get_celltype_mapping_dict(celltype_mapping_dict):
+    match celltype_mapping_dict:
+        case None:
+            logger.info("Reference cell types label will be used directly.")
+            return None
+        case str():
+            logger.info("Parsing celltype_mapping_dict file.")
+            try:
+                with open(celltype_mapping_dict, 'r', encoding='utf-8') as file:
+                    celltype_mapping_dict = json.load(file)
+                return celltype_mapping_dict
+            except FileNotFoundError:
+                logger.error(f"The file '{celltype_mapping_dict}' was not found.")
+                logger.info("Reference cell types label will be used directly.")
+                return None
+            except json.JSONDecodeError:
+                logger.error(f"The file '{celltype_mapping_dict}' is not a valid JSON file.")
+                logger.info("Reference cell types label will be used directly.")
+                return None
+            return "The variable is a string."
+        case dict():
+            logger.info("The variable celltype_mapping_dict is used.")
+            return celltype_mapping_dict
+        case _:
+            logger.error(f"The variable celltype_mapping_dict is of an unknown type.")
+            logger.info("Reference cell types label will be used directly.")
+            return None
+
+def aggregate_by_weight(df, merge_dict, weight_dict):
+    results = []
+    index = []
+    for key in sorted(merge_dict):
+        index.append(key)
+        row = []
+        sum_ = 0
+        if len(merge_dict[key]) == 1:
+            results.append(df.loc[merge_dict[key][0]].values)
+        else:
+            for ct in merge_dict[key]:
+                assert weight_dict[ct] > 0
+                sum_ += weight_dict[ct]
+                row.append(df.loc[ct].values * weight_dict[ct])
+            results.append(np.array(row).sum(axis=0) / sum_)
+    return pd.DataFrame(results, index=index, columns=df.columns)
+
+
+
+def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, celltype_mapping_dict, k=2.59, debug_mode=False):
     assert os.path.exists(reference_path), "Reference dir doesn't exist."
+
     logger.info("Loading reference data.")
     with open(f'{reference_path}/complex_table.pkl', 'rb') as f:
         ref_complex_table = pickle.load(f)
@@ -86,15 +165,97 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ref_interactions = pickle.load(f)
     with open(f'{reference_path}/ref_gene_pmf_dict.pkl', 'rb') as f:
         ref_gene_pmf_dict = pickle.load(f)
-    ref_pvals = pd.read_csv(f'{reference_path}/ref_pvals.txt', sep='\t', index_col=0)
-    ref_p1 = pd.read_csv(f'{reference_path}/ref_interactions_strength_L.txt', sep='\t', index_col=0)
-    ref_p2 = pd.read_csv(f'{reference_path}/ref_interactions_strength_R.txt', sep='\t', index_col=0)
-    ref_percents_analysis = pd.read_csv(f'{reference_path}/ref_percents_analysis.txt', sep='\t', index_col=0)
-    ref_L_perc = pd.read_csv(f'{reference_path}/ref_percents_L.txt', sep='\t', index_col=0)
-    ref_R_perc = pd.read_csv(f'{reference_path}/ref_percents_R.txt', sep='\t', index_col=0)
+
+    with open(f'{reference_path}/ref_percents.pkl', 'rb') as f:
+        ref_percents = pickle.load(f)
+    with open(f'{reference_path}/ref_mean_counts.pkl', 'rb') as f:
+        ref_mean_counts = pickle.load(f)
+
+    gene_list = [gene for gene in ref_mean_counts.columns if gene in counts_df.columns]
+    ref_complex_table = ref_complex_table.loc[[item for item in ref_complex_table.index if item in complex_table.index]]
+    ref_interactions = ref_interactions.loc[[item for item in ref_interactions.index if item in interactions.index]]
+
+    ref_label_counter = config['celltype']
+    label_counter = Counter(labels_df['cell_type'])
+
+    # 25-01-08 add
+    # Combine cell types
+    celltype_mapping_dict = get_celltype_mapping_dict(celltype_mapping_dict)
+    if celltype_mapping_dict is None:
+
+        ref_meta_dict = {}
+        for item in ref_label_counter:
+            if item not in label_counter:
+                continue
+            ref_meta_dict[item] = ref_label_counter[item]
+        logger.debug(f"Valid reference cell type data:\n{str(ref_meta_dict)}")
+
+    else:
+        for key, value in celltype_mapping_dict.items():
+            assert key in ref_label_counter, 'Please check the spelling, capitalization, spacing, and format of “your cell type”, as well as whether it is included in the reference.'
+            assert value in label_counter, 'Please check the spelling, capitalization, spacing, and format of “your cell type”, as well as whether it is included in the query.'
+        
+        query_to_reference_dict = {}
+        for key, value in celltype_mapping_dict.items():
+            if value not in query_to_reference_dict:
+                query_to_reference_dict[value] = [key]
+            else:
+                query_to_reference_dict[value].append(key)
+
+        for item in ref_label_counter:
+            if item not in celltype_mapping_dict and item in label_counter:
+                query_to_reference_dict[item] = [item]
+
+        ref_mean_counts = aggregate_by_weight(ref_mean_counts, query_to_reference_dict, ref_label_counter)
+        ref_percents = aggregate_by_weight(ref_percents, query_to_reference_dict, ref_label_counter)
+
+        ref_meta_dict = {}
+        for key, values in query_to_reference_dict.items():
+            sum_ = 0
+            for item in values:
+                sum_ += ref_label_counter[item]
+            ref_meta_dict[key] = sum_
+        logger.debug(f"Valid reference cell type data:\n{str(ref_meta_dict)}")
+
+    unique_meta_dict = {}
+    for item in label_counter:
+        if item not in ref_meta_dict:
+            unique_meta_dict[item] = label_counter[item]
+    logger.debug(f"Unique query cell type data:\n{str(unique_meta_dict)}")
+    
+
+    # 25-01-08 end
+
+
+    
+    # ref_meta_dict = {}
+    # for item in ref_label_counter:
+    #     if item not in label_counter:
+    #         continue
+    #     ref_meta_dict[item] = ref_label_counter[item]
+
+    ref_mean_counts = ref_mean_counts.loc[[item for item in ref_mean_counts.index if item in ref_meta_dict]]
+    ref_percents = ref_percents.loc[[item for item in ref_mean_counts.index if item in ref_meta_dict]]
+
+    ref_p1, ref_p2, ref_CS = get_ligand_receptor_summary(ref_mean_counts, ref_interactions)
+    ref_L_perc, ref_R_perc, ref_percents_analysis = calculate_L_R_and_IS_percents(ref_percents, ref_interactions, threshold=config['min_percentile'])
+
+    ref_clusters_mean_dict = {}
+    for celltype in sorted(ref_meta_dict):
+        ref_clusters_mean_dict[celltype]  = {}
+        n_sum = ref_meta_dict[celltype]
+        if n_sum < 100:
+            for gene in gene_list:
+                ref_clusters_mean_dict[celltype][gene] = ref_gene_pmf_dict[gene][n_sum]
+        else:
+            for gene in gene_list:
+                ref_clusters_mean_dict[celltype][gene] = ref_gene_pmf_dict[gene][1] ** n_sum / n_sum
+    ref_mean_pmfs = pd.DataFrame(ref_clusters_mean_dict).T
+    complex_func = get_minimum_distribution_for_digit
+    ref_mean_pmfs = dist_complex.combine_complex_distribution_df(ref_mean_pmfs, ref_complex_table, complex_func)
     logger.success("Reference data is loaded.")
 
-    logger.info("Calculating IS score for query data.")
+    logger.info("Calculating CS score for query data.")
     mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
     null_mean_counts = mean_counts.copy()
     null_mean_counts.values[:,:] = np.repeat(np.array([counts_df.mean(axis=0)]), len(mean_counts), axis=0).reshape(*mean_counts.shape)
@@ -106,14 +267,29 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
 
     logger.info("Filtering reference data.")
-    common_ind = sorted(set(ref_pvals.index) & set(interactions_strength.index))
-    common_col = sorted(set(ref_pvals.columns) & set(interactions_strength.columns))
+    common_ind = sorted(set(ref_percents_analysis.index) & set(interactions_strength.index))
+    common_col = sorted(set(ref_percents_analysis.columns) & set(interactions_strength.columns))
+    ref_pvals = dist_lr.calculate_key_interactions_pvalue(
+        ref_mean_pmfs, ref_interactions, ref_CS, ref_percents_analysis, method='Arithmetic'
+    )
     ref_pvals = ref_pvals.loc[common_ind, common_col]
+    # real_ref_pvals = pd.read_csv(f'{reference_path}/ref_pvals.txt', sep='\t', index_col=0)
+    # real_ref_pvals = real_ref_pvals.loc[common_ind, common_col]
+    # print(f"Error: {np.sum(np.abs(real_ref_pvals.values - ref_pvals.values))}")
+    # print(f"Equal: {np.array_equal(real_ref_pvals.values, ref_pvals.values)}")
+    # tmp = np.where(real_ref_pvals.values!= ref_pvals.values)
+    # print('real')
+    # print(real_ref_pvals.values[tmp])
+    # print('ref')
+    # print(ref_pvals.values[tmp])
+    print(f'ref_pvals shape: {ref_pvals.shape}')
     ref_percents_analysis= ref_percents_analysis.loc[common_ind, common_col]
     ref_p1= ref_p1.loc[common_ind, common_col]
     ref_p2= ref_p2.loc[common_ind, common_col]
     ref_L_perc = ref_L_perc.loc[common_ind, common_col]
     ref_R_perc = ref_R_perc.loc[common_ind, common_col]
+
+    
 
     logger.info("Filtering by using reference.")
     # filtering use ref
@@ -334,7 +510,7 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
 
 
 
-def infer_query_workflow(database_file_path, reference_path, query_counts_file_path, celltype_file_path, save_path, meta_key=None, debug_mode=False):
+def infer_query_workflow(database_file_path, reference_path, query_counts_file_path, celltype_file_path, save_path, celltype_mapping_dict=None, meta_key=None, debug_mode=False):
     
     with open(f'{reference_path}/config.toml', 'rb') as f:
         config = tomllib.load(f)
@@ -375,7 +551,11 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     if debug_mode:
         logger.debug("Entering debug process")
         from .build_reference import fastcci_for_reference
-        fastcci_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], debug_mode=True)
+        fastcci_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], query_debug_mode=True)
         logger.debug("Debug ends.")
-    compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config=config, k=k, debug_mode=debug_mode)
+    compare_with_reference(
+        counts_df, labels_df, complex_table, interactions, reference_path, save_path, 
+        config=config, celltype_mapping_dict = celltype_mapping_dict, 
+        k=k, debug_mode=debug_mode
+    )
     logger.success("Inference workflow done.")

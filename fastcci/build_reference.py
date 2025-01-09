@@ -235,7 +235,7 @@ def get_fastcci_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
     return counts_df, complex_table, interactions
 
 
-def fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, debug_mode=False):
+def fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, ref_debug_mode=False, query_debug_mode=False):
     logger.info("Running FastCCI.")
     mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
     complex_func = score.calculate_complex_min_func
@@ -313,18 +313,29 @@ def fastcci_for_reference(reference_name, save_path, counts_df, labels_df, compl
         mean_pmfs, interactions, interactions_strength, percents_analysis, method='Arithmetic'
     )
 
-    if debug_mode:
+    if query_debug_mode:
         pvals.to_csv(f'{save_path}/debug_pvals.txt', sep='\t')
         return
     ####### save reference results #######
     logger.info("Saving reference.")
-    pvals.to_csv(f'{save_path}/ref_pvals.txt', sep='\t')
-    percents_analysis.to_csv(f'{save_path}/ref_percents_analysis.txt', sep='\t')
-    L_perc.to_csv(f'{save_path}/ref_percents_L.txt', sep='\t')
-    R_perc.to_csv(f'{save_path}/ref_percents_R.txt', sep='\t')
-    # interactions_strength.to_csv(f'{save_path}/ref_interactions_strength.csv')
-    p1.to_csv(f'{save_path}/ref_interactions_strength_L.txt', sep='\t')
-    p2.to_csv(f'{save_path}/ref_interactions_strength_R.txt', sep='\t')
+    if ref_debug_mode:
+        pvals.to_csv(f'{save_path}/ref_pvals.txt', sep='\t')
+        percents_analysis.to_csv(f'{save_path}/ref_percents_analysis.txt', sep='\t')
+        L_perc.to_csv(f'{save_path}/ref_percents_L.txt', sep='\t')
+        R_perc.to_csv(f'{save_path}/ref_percents_R.txt', sep='\t')
+        # interactions_strength.to_csv(f'{save_path}/ref_interactions_strength.csv')
+        p1.to_csv(f'{save_path}/ref_interactions_strength_L.txt', sep='\t')
+        p2.to_csv(f'{save_path}/ref_interactions_strength_R.txt', sep='\t')
+
+    # 25-01-07 add
+    # percents.to_csv(f'{save_path}/ref_percents.txt', sep='\t')
+    # mean_counts.to_csv(f'{save_path}/ref_mean_counts.txt', sep='\t')
+    with open(f'{save_path}/ref_percents.pkl', 'wb') as f:
+        pickle.dump(percents, f)
+    with open(f'{save_path}/ref_mean_counts.pkl', 'wb') as f:
+        pickle.dump(mean_counts, f)
+    # 25-01-07 end
+
     with open(f'{save_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
         pickle.dump(gene_pmf_dict, f)
     with open(f'{save_path}/complex_table.pkl', 'wb') as f:
@@ -394,7 +405,7 @@ def save_config(save_path):
         f.write(save_content) 
 
 
-def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1):
+def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1, debug_mode=False):
     logger.info(f"Start building CCI reference: {reference_name}")
 
     reference_config['reference_name'] = reference_name
@@ -404,10 +415,14 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
     else:
         reference_config['LRI_database'] = database_file_path.split('/')[-1]
 
+    logger.info(f"Reference_name = {reference_config['reference_name']}")
+    logger.info(f"min_percentile = {reference_config['min_percentile']}")
+    logger.info(f"LRI database = {reference_config['LRI_database']}")
+
     save_path = os.path.join(save_path, reference_name)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-        logger.success(f"Reference save dir is created.")
+        logger.success(f"Reference save dir {save_path} is created.")
     else:
         logger.warning(f"{save_path} already exists, all files will be overwritten")
 
@@ -431,7 +446,7 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
     reference = rank_preprocess(reference)
     record_adjustment_info(reference, save_path)
     counts_df, complex_table, interactions = get_fastcci_input(reference, database_file_path)
-    fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile)
+    fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile, ref_debug_mode=debug_mode)
     save_config(save_path)
     logger.success(f"Reference '{reference_name}' is built.")
 
