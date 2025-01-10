@@ -154,8 +154,24 @@ def aggregate_by_weight(df, merge_dict, weight_dict):
     return pd.DataFrame(results, index=index, columns=df.columns)
 
 
+def load_LRI_id_to_gene_symbol_dict(LRI_db_path):
+    from . import preprocess
+    interactions = preprocess.get_interactions(LRI_db_path)
+    id2symbol_dict = (pd.read_csv(f'{LRI_db_path}/gene_table.csv')[['protein_id', 'hgnc_symbol']]\
+    .set_index('protein_id')['hgnc_symbol']).to_dict()
+    ##### complex_table ######
+    complex_composition = pd.read_csv(os.path.join(LRI_db_path, 'complex_composition_table.csv'))
+    complex_table = pd.read_csv(os.path.join(LRI_db_path, 'complex_table.csv'))
+    complex_table = complex_table.merge(complex_composition, left_on='complex_multidata_id', right_on='complex_multidata_id')
+    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values)).to_dict()
+    for key in foo_dict:
+        value = ','.join([id2symbol_dict[item] for item in foo_dict[key]])
+        id2symbol_dict[key] = value
+    return id2symbol_dict
 
-def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, celltype_mapping_dict, k=2.59, debug_mode=False):
+
+
+def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, celltype_mapping_dict, database_file_path, k=2.59, debug_mode=False):
     assert os.path.exists(reference_path), "Reference dir doesn't exist."
 
     logger.info("Loading reference data.")
@@ -322,6 +338,8 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     L_perc_list = L_perc.values[np.where(percents_analysis)]
     R_perc_list = R_perc.values[np.where(percents_analysis)]
 
+    id2symbol_dict = load_LRI_id_to_gene_symbol_dict(database_file_path)
+
     # strategy
     prediction = []
     est_by_ref = []
@@ -329,6 +347,12 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     for i, (index, col) in enumerate(zip(*np.where(percents_analysis))):
         index = percents_analysis.index[index]
         col = percents_analysis.columns[col]
+
+        ligand_gene_name = interactions.loc[col].multidata_1_id
+        receptor_gene_name = interactions.loc[col].multidata_2_id
+        ligand_gene_name = id2symbol_dict[ligand_gene_name]
+        receptor_gene_name =  id2symbol_dict[receptor_gene_name]
+
         IS = interactions_strength.loc[index, col]
         assert valid_IS_list[i] == IS
         low_IS = low_bound_list[i]
@@ -393,7 +417,8 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
             comparison = np.nan
 
         results.append((
-            index, is_in_ref, col, f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
+            index, is_in_ref, col,  ligand_gene_name, receptor_gene_name,
+            f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
             True, ligand_perc, receptor_perc, 
             ref_perc, ref_ligand_perc, ref_receptor_perc, 
             ligand_IS, ligand_range, 
@@ -404,6 +429,12 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     for index, col in zip(*np.where(np.logical_and(ref_pvals < 0.05, percents_analysis.loc[common_ind, common_col] == False))):
         index = ref_pvals.index[index]
         col = ref_pvals.columns[col]
+
+        ligand_gene_name = interactions.loc[col].multidata_1_id
+        receptor_gene_name = interactions.loc[col].multidata_2_id
+        ligand_gene_name = id2symbol_dict[ligand_gene_name]
+        receptor_gene_name =  id2symbol_dict[receptor_gene_name]
+
         IS = interactions_strength.loc[index, col]
         null_IS = null_interactions_strength.loc[index, col]
         ligand_perc = L_perc.loc[index, col]
@@ -414,7 +445,9 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         receptor_IS = p2.loc[index, col]
 
         results.append((
-            index, True, col, f"{IS}", null_IS, np.nan, 
+            index, True, col, ligand_gene_name, 
+            receptor_gene_name,
+            f"{IS}", null_IS, np.nan, 
             False, ligand_perc, receptor_perc, 
             True, ref_ligand_perc, ref_receptor_perc, 
             ligand_IS, np.nan, 
@@ -426,7 +459,8 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     results_df = pd.DataFrame(
         results, 
         columns=[
-            'sender|receiver', 'is_in_ref', 'LRI_id', 'IS_score', 'null_IS',
+            'sender|receiver', 'is_in_ref', 'LRI_id', 
+            'ligand', 'receptor', 'IS_score', 'null_IS',
             'Sig_thres_interval_by_ref',
             '>min_percentile', 'L_perc', 'R_perc',
             '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
@@ -556,6 +590,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     compare_with_reference(
         counts_df, labels_df, complex_table, interactions, reference_path, save_path, 
         config=config, celltype_mapping_dict = celltype_mapping_dict, 
+        database_file_path = database_file_path,
         k=k, debug_mode=debug_mode
     )
     logger.success("Inference workflow done.")
