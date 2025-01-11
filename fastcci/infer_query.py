@@ -430,6 +430,18 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         index = ref_pvals.index[index]
         col = ref_pvals.columns[col]
 
+        # 01-10 add
+        sender, receiver = index.split('|')
+        mid_1 = interactions.loc[col, 'multidata_1_id']
+        mid_2 = interactions.loc[col, 'multidata_2_id']
+        pmf_1 = mean_pmfs.loc[sender, mid_1]
+        pmf_2 = mean_pmfs.loc[receiver, mid_2]
+        pmf = (pmf_1 & pmf_2) / 2
+        threshold = get_threshold_from_pmf(pmf, 0.05)
+        up_IS = threshold + threshold / k * 1.96 
+        low_IS = threshold - threshold / k * 1.96 
+        # 01-10 end
+
         ligand_gene_name = interactions.loc[col].multidata_1_id
         receptor_gene_name = interactions.loc[col].multidata_2_id
         ligand_gene_name = id2symbol_dict[ligand_gene_name]
@@ -444,14 +456,22 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ligand_IS = p1.loc[index, col]
         receptor_IS = p2.loc[index, col]
 
+        ligand_low = np.max(ref_p1.loc[index, col] * (1-1/k*1.96), 0)
+        ligand_high = ref_p1.loc[index, col] * (1+1/k*1.96)
+        receptor_low = np.max(ref_p2.loc[index, col], 0) * (1-1/k*1.96)
+        receptor_high = ref_p2.loc[index, col] * (1+1/k*1.96)
+        ligand_range = f"{ligand_low}-{ligand_high}"
+        receptor_range = f"{receptor_low}-{receptor_high}"
+
+
         results.append((
             index, True, col, ligand_gene_name, 
             receptor_gene_name,
-            f"{IS}", null_IS, np.nan, 
+            f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
             False, ligand_perc, receptor_perc, 
             True, ref_ligand_perc, ref_receptor_perc, 
-            ligand_IS, np.nan, 
-            receptor_IS, np.nan,
+            ligand_IS, ligand_range, 
+            receptor_IS, receptor_range,
             False, True, "Down"
         ))
 
@@ -579,8 +599,8 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     query = rank_preprocess(query)
     k = calculate_adjust_factor(query, reference_path, save_path, debug_mode)
     logger.info(f"k={k}")
-    if k < 2.6:
-        k = 2.6
+    if k < 3:
+        k = 3
     counts_df, complex_table, interactions = get_fastcci_input(query, database_file_path)
     if debug_mode:
         logger.debug("Entering debug process")
