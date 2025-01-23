@@ -7,13 +7,13 @@ import pandas as pd
 import pickle as pkl
 from loguru import logger
 
-def cauthy_combine(fastCCI_dir, task_id=None):
+def cauthy_combine(fastCCC_dir, task_id=None):
     if task_id is None:
         logger.warning("No task_id is provided, all pvals files will be combined.")
-        pval_paths = glob.glob(fastCCI_dir+os.sep+'*pvals.csv')
+        pval_paths = glob.glob(fastCCC_dir+os.sep+'*pvals.csv')
     else:
         logger.info(f"Task ID for combining is :{task_id}")
-        pval_paths = glob.glob(fastCCI_dir+os.sep+f'{task_id}*pvals.csv')
+        pval_paths = glob.glob(fastCCC_dir+os.sep+f'{task_id}*pvals.csv')
     logger.info(f"There are {len(pval_paths)} pval files.")
     joined_path = '\n'.join(pval_paths)
     logger.debug(f"\n{joined_path}")
@@ -45,11 +45,11 @@ def cauthy_combine(fastCCI_dir, task_id=None):
     P_df = pd.DataFrame(P, index=ct_pairs, columns=cpis)
 
     if task_id is None:
-        T_df.to_csv(fastCCI_dir+os.sep+'Cauchystats.csv')
-        P_df.to_csv(fastCCI_dir+os.sep+'Cauchypvals.csv')
+        T_df.to_csv(fastCCC_dir+os.sep+'Cauchystats.csv')
+        P_df.to_csv(fastCCC_dir+os.sep+'Cauchypvals.csv')
     else:
-        T_df.to_csv(fastCCI_dir+os.sep+f'{task_id}_Cauchystats.csv')
-        P_df.to_csv(fastCCI_dir+os.sep+f'{task_id}_Cauchypvals.csv')
+        T_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchystats.csv')
+        P_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchypvals.csv')
 
 # if __name__ == "__main__":
-#     cauthy_combine(fastCCI_dir)
+#     cauthy_combine(fastCCC_dir)

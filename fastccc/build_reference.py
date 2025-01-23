@@ -117,7 +117,7 @@ def rank_preprocess(adata):
     logger.success("Rank preprocess done.")
     return adata
 
-def get_fastcci_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
+def get_fastccc_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
     logger.info("Loading LRIs database. hgnc_symbol as gene name is requested.")
     interactions = get_interactions(lrdb_file_path)
     ##### gene_table ########
@@ -231,12 +231,12 @@ def get_fastcci_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
     select_index = [True if item in temp_list else False for item in complex_table.complex_multidata_id]
     complex_table = complex_table[select_index]
     interactions = interactions_filtered
-    logger.success("Requested data for fastcci is prepared")
+    logger.success("Requested data for fastccc is prepared")
     return counts_df, complex_table, interactions
 
 
-def fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, ref_debug_mode=False, query_debug_mode=False):
-    logger.info("Running FastCCI.")
+def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, ref_debug_mode=False, query_debug_mode=False):
+    logger.info("Running FastCCC.")
     mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
     complex_func = score.calculate_complex_min_func
     mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
@@ -445,8 +445,8 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
     
     reference = rank_preprocess(reference)
     record_adjustment_info(reference, save_path)
-    counts_df, complex_table, interactions = get_fastcci_input(reference, database_file_path)
-    fastcci_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile, ref_debug_mode=debug_mode)
+    counts_df, complex_table, interactions = get_fastccc_input(reference, database_file_path)
+    fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile, ref_debug_mode=debug_mode)
     save_config(save_path)
     logger.success(f"Reference '{reference_name}' is built.")
 

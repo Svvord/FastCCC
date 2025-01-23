@@ -1,7 +1,7 @@
 import scanpy as sc
 import numpy as np
 import pandas as pd
-from .build_reference import rank_preprocess, get_fastcci_input
+from .build_reference import rank_preprocess, get_fastccc_input
 from .build_reference import calculate_L_R_and_IS_score, calculate_L_R_and_IS_percents
 from .build_reference import calculate_mean_pmfs, record_hk_genes
 from . import score
@@ -170,6 +170,19 @@ def load_LRI_id_to_gene_symbol_dict(LRI_db_path):
     return id2symbol_dict
 
 
+def get_null_ref_mean_counts(ref_gene_pmf_dict, ref_complex_table):
+    # 使用 reference 数据，在没有任何条件下，gene 的均值应该是多少，complex 也同样被考虑。
+    # 返回一个 dataframe
+    null_ref_mean_counts = []
+    columns = []
+    for multi_id in ref_gene_pmf_dict:
+        columns.append(multi_id)
+        null_ref_mean_counts.append(ref_gene_pmf_dict[multi_id][1].mean)
+    null_ref_mean_counts = pd.DataFrame([null_ref_mean_counts], index=['ref_null'], columns=columns)
+    complex_func = score.calculate_complex_min_func
+    null_ref_mean_counts = score.combine_complex_distribution_df(null_ref_mean_counts, ref_complex_table, complex_func)
+    return null_ref_mean_counts
+
 
 def compare_with_reference(counts_df, labels_df, complex_table, interactions, reference_path, save_path, config, celltype_mapping_dict, database_file_path, k=2.59, debug_mode=False):
     assert os.path.exists(reference_path), "Reference dir doesn't exist."
@@ -190,6 +203,8 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     gene_list = [gene for gene in ref_mean_counts.columns if gene in counts_df.columns]
     ref_complex_table = ref_complex_table.loc[[item for item in ref_complex_table.index if item in complex_table.index]]
     ref_interactions = ref_interactions.loc[[item for item in ref_interactions.index if item in interactions.index]]
+
+    null_ref_mean_counts = get_null_ref_mean_counts(ref_gene_pmf_dict, ref_complex_table)
 
     ref_label_counter = config['celltype']
     label_counter = Counter(labels_df['cell_type'])
@@ -268,7 +283,8 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 ref_clusters_mean_dict[celltype][gene] = ref_gene_pmf_dict[gene][1] ** n_sum / n_sum
     ref_mean_pmfs = pd.DataFrame(ref_clusters_mean_dict).T
     complex_func = get_minimum_distribution_for_digit
-    ref_mean_pmfs = dist_complex.combine_complex_distribution_df(ref_mean_pmfs, ref_complex_table, complex_func)
+    if len(ref_mean_pmfs):
+        ref_mean_pmfs = dist_complex.combine_complex_distribution_df(ref_mean_pmfs, ref_complex_table, complex_func)
     logger.success("Reference data is loaded.")
 
     logger.info("Calculating CS score for query data.")
@@ -285,10 +301,13 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     logger.info("Filtering reference data.")
     common_ind = sorted(set(ref_percents_analysis.index) & set(interactions_strength.index))
     common_col = sorted(set(ref_percents_analysis.columns) & set(interactions_strength.columns))
-    ref_pvals = dist_lr.calculate_key_interactions_pvalue(
-        ref_mean_pmfs, ref_interactions, ref_CS, ref_percents_analysis, method='Arithmetic'
-    )
-    ref_pvals = ref_pvals.loc[common_ind, common_col]
+    if len(ref_mean_pmfs):
+        ref_pvals = dist_lr.calculate_key_interactions_pvalue(
+            ref_mean_pmfs, ref_interactions, ref_CS, ref_percents_analysis, method='Arithmetic'
+        )
+        ref_pvals = ref_pvals.loc[common_ind, common_col]
+    else:
+        ref_pvals = pd.DataFrame([], index=common_ind, columns=common_col)
     # real_ref_pvals = pd.read_csv(f'{reference_path}/ref_pvals.txt', sep='\t', index_col=0)
     # real_ref_pvals = real_ref_pvals.loc[common_ind, common_col]
     # print(f"Error: {np.sum(np.abs(real_ref_pvals.values - ref_pvals.values))}")
@@ -353,6 +372,17 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ligand_gene_name = id2symbol_dict[ligand_gene_name]
         receptor_gene_name =  id2symbol_dict[receptor_gene_name]
 
+        #01-11 add
+        if debug_mode == True:
+            mid1 = interactions.loc[col].multidata_1_id
+            mid2 = interactions.loc[col].multidata_2_id
+            # L_null_ref = ref_mean_pmfs.iloc[0][mid1].mean
+            # R_null_ref = ref_mean_pmfs.iloc[0][mid2].mean
+            L_null_ref = null_ref_mean_counts[mid1].item()
+            R_null_ref = null_ref_mean_counts[mid2].item()
+
+        #01-11 end
+
         IS = interactions_strength.loc[index, col]
         assert valid_IS_list[i] == IS
         low_IS = low_bound_list[i]
@@ -416,19 +446,41 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         else:
             comparison = np.nan
 
-        results.append((
-            index, is_in_ref, col,  ligand_gene_name, receptor_gene_name,
-            f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
-            True, ligand_perc, receptor_perc, 
-            ref_perc, ref_ligand_perc, ref_receptor_perc, 
-            ligand_IS, ligand_range, 
-            receptor_IS, receptor_range,
-            bool(prediction[-1]), ref_sig, comparison
-        ))
+        if debug_mode:
+            results.append((
+                index, is_in_ref, col,  ligand_gene_name, receptor_gene_name,
+                f"{IS}", null_IS, f"{low_IS}-{up_IS}", L_null_ref, R_null_ref,
+                True, ligand_perc, receptor_perc, 
+                ref_perc, ref_ligand_perc, ref_receptor_perc, 
+                ligand_IS, ligand_range, 
+                receptor_IS, receptor_range,
+                bool(prediction[-1]), ref_sig, comparison
+            ))
+        else:   
+            results.append((
+                index, is_in_ref, col,  ligand_gene_name, receptor_gene_name,
+                f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
+                True, ligand_perc, receptor_perc, 
+                ref_perc, ref_ligand_perc, ref_receptor_perc, 
+                ligand_IS, ligand_range, 
+                receptor_IS, receptor_range,
+                bool(prediction[-1]), ref_sig, comparison
+            ))
     
     for index, col in zip(*np.where(np.logical_and(ref_pvals < 0.05, percents_analysis.loc[common_ind, common_col] == False))):
         index = ref_pvals.index[index]
         col = ref_pvals.columns[col]
+
+        #01-11 add
+        if debug_mode == True:
+            mid1 = interactions.loc[col].multidata_1_id
+            mid2 = interactions.loc[col].multidata_2_id
+            # L_null_ref = ref_mean_pmfs.iloc[0][mid1].mean
+            # R_null_ref = ref_mean_pmfs.iloc[0][mid2].mean
+            L_null_ref = null_ref_mean_counts[mid1].item()
+            R_null_ref = null_ref_mean_counts[mid2].item()
+
+        #01-11 end
 
         # 01-10 add
         sender, receiver = index.split('|')
@@ -463,32 +515,57 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ligand_range = f"{ligand_low}-{ligand_high}"
         receptor_range = f"{receptor_low}-{receptor_high}"
 
+        if debug_mode:
+            results.append((
+                index, True, col, ligand_gene_name, 
+                receptor_gene_name,
+                f"{IS}", null_IS, f"{low_IS}-{up_IS}", L_null_ref, R_null_ref,
+                False, ligand_perc, receptor_perc, 
+                True, ref_ligand_perc, ref_receptor_perc, 
+                ligand_IS, ligand_range, 
+                receptor_IS, receptor_range,
+                False, True, "Down"
+            ))
+        else:
+            results.append((
+                index, True, col, ligand_gene_name, 
+                receptor_gene_name,
+                f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
+                False, ligand_perc, receptor_perc, 
+                True, ref_ligand_perc, ref_receptor_perc, 
+                ligand_IS, ligand_range, 
+                receptor_IS, receptor_range,
+                False, True, "Down"
+            ))
 
-        results.append((
-            index, True, col, ligand_gene_name, 
-            receptor_gene_name,
-            f"{IS}", null_IS, f"{low_IS}-{up_IS}", 
-            False, ligand_perc, receptor_perc, 
-            True, ref_ligand_perc, ref_receptor_perc, 
-            ligand_IS, ligand_range, 
-            receptor_IS, receptor_range,
-            False, True, "Down"
-        ))
-
-
-    results_df = pd.DataFrame(
-        results, 
-        columns=[
-            'sender|receiver', 'is_in_ref', 'LRI_id', 
-            'ligand', 'receptor', 'IS_score', 'null_IS',
-            'Sig_thres_interval_by_ref',
-            '>min_percentile', 'L_perc', 'R_perc',
-            '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
-            'IS_L_part','IS_L_interval_by_ref',
-            'IS_R_part', 'IS_R_interval_by_ref',
-            'is_sig', 'is_sig_ref', 'comparison'
-        ]
-    )
+    if debug_mode:
+        results_df = pd.DataFrame(
+            results, 
+            columns=[
+                'sender|receiver', 'is_in_ref', 'LRI_id', 
+                'ligand', 'receptor', 'IS_score', 'null_IS',
+                'Sig_thres_interval_by_ref', 'L_null_ref', 'R_null_ref',
+                '>min_percentile', 'L_perc', 'R_perc',
+                '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
+                'IS_L_part','IS_L_interval_by_ref',
+                'IS_R_part', 'IS_R_interval_by_ref',
+                'is_sig', 'is_sig_ref', 'comparison'
+            ]
+        )
+    else:
+        results_df = pd.DataFrame(
+            results, 
+            columns=[
+                'sender|receiver', 'is_in_ref', 'LRI_id', 
+                'ligand', 'receptor', 'IS_score', 'null_IS',
+                'Sig_thres_interval_by_ref',
+                '>min_percentile', 'L_perc', 'R_perc',
+                '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
+                'IS_L_part','IS_L_interval_by_ref',
+                'IS_R_part', 'IS_R_interval_by_ref',
+                'is_sig', 'is_sig_ref', 'comparison'
+            ]
+        )
 
     if debug_mode:
         logger.debug("Entering debug process")
@@ -583,9 +660,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     query = sc.read_h5ad(query_counts_file_path)
     sc.pp.filter_cells(query, min_genes=50) # basic QC
     logger.info(f"Reading query adata, {query.shape[0]} cells x {query.shape[1]} genes")
-    if debug_mode:
-        query.write_h5ad(f"{save_path}/debug_digit.h5ad")
-
+    
     if meta_key is not None:
         labels_df = pd.DataFrame(query.obs[meta_key])
         labels_df.columns = ['cell_type']
@@ -597,15 +672,18 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
         labels_df = labels_df.loc[query.obs_names, :]
 
     query = rank_preprocess(query)
+    if debug_mode:
+        query.write_h5ad(f"{save_path}/debug_digit.h5ad")
+
     k = calculate_adjust_factor(query, reference_path, save_path, debug_mode)
     logger.info(f"k={k}")
     if k < 3:
         k = 3
-    counts_df, complex_table, interactions = get_fastcci_input(query, database_file_path)
+    counts_df, complex_table, interactions = get_fastccc_input(query, database_file_path)
     if debug_mode:
         logger.debug("Entering debug process")
-        from .build_reference import fastcci_for_reference
-        fastcci_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], query_debug_mode=True)
+        from .build_reference import fastccc_for_reference
+        fastccc_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], query_debug_mode=True)
         logger.debug("Debug ends.")
     compare_with_reference(
         counts_df, labels_df, complex_table, interactions, reference_path, save_path, 

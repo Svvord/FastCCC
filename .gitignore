@@ -162,5 +162,5 @@ cython_debug/
 #.idea/
 
 
-fastcci/infer_query_old.py
-fastcci/infer_query_backup.py
+fastccc/infer_query_old.py
+fastccc/infer_query_backup.py

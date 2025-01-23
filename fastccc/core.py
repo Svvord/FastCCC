@@ -304,7 +304,7 @@ def statistical_analysis_method(
     pvals = dist_lr.calculate_key_interactions_pvalue(
         mean_pmfs, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
     )
-    logger.success("FastCCI calculation done.")
+    logger.success("FastCCC calculation done.")
 
     __save_file(interactions_strength, pvals, percents_analysis, save_path, task_id=task_id, method_key=method_key)
 
