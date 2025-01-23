@@ -164,3 +164,5 @@ cython_debug/
 
 fastccc/infer_query_old.py
 fastccc/infer_query_backup.py
+
+poetry_install.md
