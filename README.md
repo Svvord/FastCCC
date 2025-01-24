@@ -1,6 +1,6 @@
 # FastCCC: A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies.
 
-**[2025.01.23]** We have provided a comprehensive tutorial on the usage of [FastCCC](https://svvord.github.io/FastCCC/), which includes detailed instructions on installation, usage, and more. We highly recommend referring to this tutorial for a step-by-step guide.
+**[2025.01.23]** We have provided a comprehensive [tutorial](https://svvord.github.io/FastCCC/) on the usage of FastCCC, which includes detailed instructions on installation, usage, and more. We highly recommend referring to this [tutorial](https://svvord.github.io/FastCCC/) for a step-by-step guide.
 
 ## Overview
 ![scheme](./docs/images/overview.v2.0.jpg)
