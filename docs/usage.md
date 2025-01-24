@@ -114,7 +114,7 @@ core.Cauchy_combination_of_statistical_analysis_methods(
 ### `statistical_analysis_method`
 
 #### Description
-The `statistical_analysis_method` function performs statistical analysis on cell-cell communication, supporting various distribution calculation methods. It offers options for filtering candidate LRIs and constructing communication scores, allowing users to customize analysis parameters and optionally save the results.
+The `fastccc.core.statistical_analysis_method` function performs statistical analysis on cell-cell communication, supporting various distribution calculation methods. It offers options for filtering candidate LRIs and constructing communication scores, allowing users to customize analysis parameters and optionally save the results.
 
 #### Function Signature
 ```python
@@ -189,11 +189,60 @@ Notes
 - If filter_ is set to True, appropriate filtering conditions will be conducted.
 - If save_path is not specified, results will not be saved to a file.
 
+---
+
+### `Cauchy_combination_of_statistical_analysis_methods`
+
+#### Function Signature
+```python
+def Cauchy_combination_of_statistical_analysis_methods(
+    database_file_path,
+    celltype_file_path,
+    counts_file_path,
+    convert_type='hgnc_symbol',
+    cluster_distrib_method_list = ['Mean', 'Median', 'Q3', 'Quantile_0.9'],
+    complex_distrib_method_list = ['Minimum', 'Average'],
+    LR_distrib_method_list = ['Arithmetic', 'Geometric'],
+    min_percentile = 0.1,
+    save_path = None,
+    meta_key = None, 
+    filter_ = False,
+    use_DEG = False
+)
+```
+
+#### Description
+
+The `fastccc.core.Cauchy_combination_of_statistical_analysis_methods` function performs an advanced statistical analysis by combining multiple single-unit summary, complex aggregation, and ligand-receptor integration methods. It processes biological data to assess CCC using different statistical approaches and combines the results using the Cauchy combination method. The function offers flexibility by allowing users to specify various distribution methods and filtering options, making it suitable for comprehensive CCC analysis in scRNA-seq datasets.
+
+#### Parameters
+
+| Parameter                    | Type          | Default Value                                     | Description  |
+|------------------------------|---------------|--------------------------------------------------|--------------|
+| `database_file_path`          | `str`         |                          | Path to the database directory containing the candidate LRIs. |
+| `celltype_file_path`          | `str`         |                          | Path to the cell type information file. |
+| `counts_file_path`            | `str`         |                          | Path to the normalized log1p-transformed matrix file in h5ad format. |
+| `convert_type`                | `str`         | `'hgnc_symbol'`                                  | Type of gene identifier conversion, such as `'hgnc_symbol'` or `'ensembl'`. |
+| `cluster_distrib_method_list` | `list[str]`    | `['Mean', 'Median', 'Q3', 'Quantile_0.9']`       | List of methods for calculating cluster distribution. |
+| `complex_distrib_method_list` | `list[str]`    | `['Minimum', 'Average']`                         | List of methods for calculating complex distribution. |
+| `LR_distrib_method_list`      | `list[str]`    | `['Arithmetic', 'Geometric']`                    | List of methods for ligand-receptor distribution calculation. |
+| `min_percentile`              | `float`       | `0.1`                                            | Minimum percentile threshold for filtering. |
+| `save_path`                   | `str` or `None` | `None`                                           | Path to save analysis results; if `None`, results are saved to the default path. |
+| `meta_key`                    | `str` or `None` | `None`                                           | Metadata key specifying the column in `adata.obs` that contains the cell type labels. |
+| `filter_`                     | `bool`        | `False`                                          | Whether to enable data filtering. |
+| `use_DEG`                     | `bool`        | `False`                                          | Whether to use differentially expressed genes (DEGs) in the analysis. |
+
+---
+
+#### Returns
+
+No variables will be returned directly. Instead, all branch-specific results, along with the final combined results, will be saved to the user-specified folder.
+
+
 ### Version Information
 - Author: Siyu Hou
 - Version: early access
 - Last Updated: 2025-01-22
-
 
 
 [FastCCC]: https://github.com/Svvord/FastCCC
