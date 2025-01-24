@@ -27,6 +27,15 @@ FastCCC is a powerful, permutation-free framework designed to identify critical 
   <img src="{{ site.baseurl }}/images/overview.v2.0.jpg" width="700">
 </p>
 
+FastCCC introduces unique features in CCC analysis. 
+1. ### Ultra-high scalability:
+It offers a novel approach to computing $$p$$-values using convolution techniques through Fast Fourier Transform (FFT), eliminating the need for computationally expensive permutations. This approach makes FastCCC significantly faster and more scalable than existing methods, especially for large datasets. 
+2. ### Modular algebraic operation framework:
+FastCCC features a modular communication score ($$CS$$) computation framework that captures interaction strength through algebraic operations on ligand-receptor expression levels. This framework can handle multi-subunit protein complexes, increasing the power and robustness of CCC detection.
+3. ### Reference-based CCC comparison analysis
+FastCCC enables reference-based CCC analysis by allowing large-scale datasets to serve as reference panels for more comprehensive analysis of smaller user-collected datasets.
+4. ### Frist human CCC reference panel:
+We constructed, to the best of our knowledge, the first human CCC reference panel, which includes 19 tissue types and approximately 16 million cells, thereby enhancing the interpretability and consistency of CCC analysis across various biological contexts.
 
 ## Citing the work
 If you find the `FastCCC` package or any of the source code in our [repository] useful for your work, please cite:

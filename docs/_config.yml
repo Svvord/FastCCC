@@ -4,3 +4,6 @@ remote_theme: just-the-docs/just-the-docs
 
 baseurl: /FastCCC
 url: https://svvord.github.io
+
+aux_links:
+  Source code: https://github.com/Svvord/FastCCC
