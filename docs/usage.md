@@ -44,15 +44,15 @@ We use a sample dataset as an example, which can be downloaded from [here](https
 ```python
 import fastccc.core as core
 
-cpdb_file_path = './db/CPDBv4.1.0/'
+LRI_db_file_path = './db/CPDBv4.1.0/'
 meta_file_path = '../../data/examples/metadata.tsv'
 counts_file_path = '../../data/examples/normalised_log_counts.h5ad'
 convert_type = 'hgnc_symbol'
 
 interactions_strength, pvals, percents_analysis = core.statistical_analysis_method(
-    cpdb_file_path, # format: normalized log1p transformed count matrix
+    LRI_db_file_path, 
     meta_file_path, 
-    counts_file_path,
+    counts_file_path, # format: normalized log1p transformed count matrix
     convert_type,
     cluster_distrib_method = 'Mean',
     complex_distrib_method = 'Minimum',
@@ -62,7 +62,7 @@ interactions_strength, pvals, percents_analysis = core.statistical_analysis_meth
 Here, we use `core.statistical_analysis_method` for a single $$CS$$ statistic. 
 
 To run the code, you need to specify the following key parameters:
-- `cpdb_file_path` refers to the location of the curated LRI database. We have uploaded several commonly used databases from various sources to our [GitHub repository] for convenient use. If you prefer to use your own curated database, detailed [instructions]({{ site.baseurl }}/usage.html#build-your-own-lris-database) are provided on how to easily convert your data into a FastCCC-compatible format using the provided tools.
+- `LRI_db_file_path` refers to the location of the curated LRI database. We have uploaded several commonly used databases from various sources to our [GitHub repository] for convenient use. If you prefer to use your own curated database, detailed [instructions]({{ site.baseurl }}/toolkits.html#build-your-own-lris-database) are provided on how to easily convert your data into a FastCCC-compatible format using the provided tools.
 
 - `meta_file_path` specifies the location of the metadata file containing cell type annotations. The file should be in TSV format (tab-separated text file), and you can refer to the provided `metadata.tsv` as an example. Since the H5AD format natively supports storing cell type labels, if your cell type information is already stored in `adata.obs[key]`, you can set `meta_file_path = None` and use `meta_key = key` to avoid the need for a separate metadata file.
 
@@ -74,30 +74,37 @@ To run the code, you need to specify the following key parameters:
 
 - `complex_distrib_method` specifies how the previously selected single-unit expression summaries are aggregated to construct the null distribution for multi-unit protein complexes. FastCCC currently supports two aggregation methods: `Minimum` and `Average`.
 
-- `LR_distrib_method` sepcifies how to combine the ligand and receptor scores to construct the null distribution for the CS statistic. FastCCC currently supports two aggregation methods: `Arithmetic` and `Geometric` average.
+- `LR_distrib_method` sepcifies how to combine the ligand and receptor scores to construct the null distribution for the $$CS$$ statistic. FastCCC currently supports two aggregation methods: `Arithmetic` and `Geometric` average.
 
 For more details, please refer to [this section]({{ site.baseurl }}/usage.html#statistical_analysis_method). 
 
-## Basic usages with multiple $$CS$$ combination
+## Basic usages for combining multiple $$CS$$ statistics.
+Users may want to apply different $$CS$$ computation methods and combine the final $$p$$-value results. Here, we use the Cauchy combination test to integrate the results from all branches.
 
+<p align="center">
+  <img src="{{ site.baseurl }}/images/cct.svg" width="400">
+</p>
+
+For example, if you choose `Mean` and `Quantile_0.9` as single-unit expression summaries, use `Minimum` aggregation for multiple-units, and apply two different $$h(\cdot)$$, you can also optionally use DEG filtering (for usage demonstration), though this step is not mandatory and can be skipped according to your preference. The final results will be saved in a table format at `../../results/temp/` in this example. Other parameters are the same as those in the [`core.statistical_analysis_method`]({{ site.baseurl }}/usage.html#statistical_analysis_method) function.
 
 ```python
 import fastccc.core as core
 
-cpdb_file_path = './db/CPDBv4.1.0/'
+LRI_db_file_path = './db/CPDBv4.1.0/'
 meta_file_path = '../../data/examples/metadata.tsv'
 counts_file_path = '../../data/examples/normalised_log_counts.h5ad'
 convert_type = 'hgnc_symbol'
+save_path = '../../results/temp/'
 
 core.Cauchy_combination_of_statistical_analysis_methods(
-    cpdb_file_path, 
+    LRI_db_file_path, 
     meta_file_path,
     counts_file_path,
     convert_type,
     cluster_distrib_method_list = ['Mean', 'Quantile_0.9'],
     complex_distrib_method_list = ['Minimum'],
     LR_distrib_method_list = ['Arithmetic', 'Geometric'],
-    save_path = '../../results/temp/',
+    save_path = save_path,
     use_DEG = True
 )
 ```
@@ -107,7 +114,7 @@ core.Cauchy_combination_of_statistical_analysis_methods(
 ### `statistical_analysis_method`
 
 #### Description
-The `statistical_analysis_method` function performs statistical analysis on biological data, supporting various distribution calculation methods. It provides data transformation and filtering options, allowing users to customize analysis parameters and optionally save the results.
+The `statistical_analysis_method` function performs statistical analysis on cell-cell communication, supporting various distribution calculation methods. It offers options for filtering candidate LRIs and constructing communication scores, allowing users to customize analysis parameters and optionally save the results.
 
 #### Function Signature
 ```python
@@ -135,19 +142,17 @@ def statistical_analysis_method(
 |-------------------------|-----------------|--------------------|--------------|
 | `database_file_path`     | `str`            |                | Path to the database directory containing the candidate LRIs. |
 | `celltype_file_path`     | `str`            |                | Path to the cell type information file. |
-| `counts_file_path`       | `str`            |                | Path to the expression matrix file. |
+| `counts_file_path`       | `str`            |                | Path to the normalized log1p-transformed matrix file in h5ad format. |
 | `convert_type`           | `str`            | `'hgnc_symbol'`     | Type of gene identifier conversion, such as `'hgnc_symbol'` or `'ensembl'`. |
-| `cluster_distrib_method` | `str`            | `'Mean'`            | Method for calculating cluster distribution, options include `'Mean'`, `'Median'`, etc. |
-| `complex_distrib_method` | `str`            | `'Minimum'`         | Method for calculating complex distribution, options include `'Minimum'`, `'Maximum'`, etc. |
-| `LR_distrib_method`      | `str`            | `'Arithmetic'`      | Method for ligand-receptor distribution calculation, options include `'Arithmetic'`, `'Geometric'`, etc. |
-| `quantile`               | `float`          | `0.9`               | Quantile threshold for data processing. |
+| `cluster_distrib_method` | `str`            | `'Mean'`            | Method for calculating single-unit's cluster distribution, options include `'Mean'`, `'Median'` or `'Q2'`, `'Q3'`, `'Quantile'`, etc. |
+| `complex_distrib_method` | `str`            | `'Minimum'`         | Method for calculating complex distribution, options include `'Minimum'`, `'Average'`. |
+| `LR_distrib_method`      | `str`            | `'Arithmetic'`      | Method for $$CS$$ distribution calculation, options include `'Arithmetic'`, `'Geometric'`. |
+| `quantile`               | `float`          | `0.9`               | Quantile if `'Quantile'` is selected for parameter `cluster_distrib_method`. |
 | `min_percentile`         | `float`          | `0.1`               | Minimum percentile threshold for filtering. |
-| `style`                  | `str` or `None`  | `None`              | Optional style for data analysis output. |
-| `meta_key`               | `str` or `None`  | `None`              | Metadata key used for specific filtering purposes. |
-| `select_list`            | `list`           | `[]`                | List of specific items to select for analysis. |
+| `meta_key`               | `str` or `None`  | `None`              | Metadata key specifying the column in `adata.obs` that contains the cell type labels. |
 | `filter_`                | `bool`           | `False`             | Whether to enable data filtering. |
-| `use_DEG`                | `bool`           | `False`             | Whether to use differentially expressed genes (DEGs) in the analysis. |
-| `save_path`              | `str` or `None`  | `None`              | Path to save the analysis results; if `None`, results will not be saved. |
+| `use_DEG`                | `bool`           | `False`             | Whether to use differentially expressed genes (DEGs) for further filtering. |
+| `save_path`              | `str` or `None`  | `None`              | Path to save the analysis results; if `None`, results will only be returned. |
 
 
 #### Returns
@@ -156,43 +161,38 @@ def statistical_analysis_method(
 |-------------------------|---------------------|--------------|
 | `interactions_strength` | `pandas.DataFrame`   | A dataframe containing the calculated $$CS$$ between different LRIs between sender and receiver cell types. |
 | `pvals`                 | `pandas.DataFrame`   | A dataframe with $$p$$-values indicating the statistical significance of the interactions. |
-| `percents_analysis`     | `pandas.DataFrame`   | A dataframe summarizing the percentage distribution of the analyzed data. |
+| `percents_analysis`     | `pandas.DataFrame`   | A dataframe summarizing the percentage anaylsis of the interactions. |
 
 
 
 Example Usage
 
 ```python
-result = statistical_analysis_method(
-    database_file_path='data/database.csv',
-    celltype_file_path='data/celltypes.csv',
-    counts_file_path='data/counts.csv',
+interactions_strength, pvals, percents_analysis = statistical_analysis_method(
+    database_file_path='./db/CPDBv4.1.0/',
+    celltype_file_path= None,
+    counts_file_path='./data/counts.h5ad',
     convert_type='ensembl',
-    cluster_distrib_method='Median',
-    complex_distrib_method='Maximum',
+    cluster_distrib_method='Quantile',
+    complex_distrib_method='Minimum',
     LR_distrib_method='Geometric',
     quantile=0.85,
-    min_percentile=0.05,
-    style='detailed',
-    meta_key='sample_id',
-    select_list=['gene1', 'gene2'],
+    min_percentile=0.1,
+    meta_key='cell_type',
     filter_=True,
-    use_DEG=True,
-    save_path='output/results.csv'
+    use_DEG=False,
+    save_path=None
 )
 ```
 Notes
-	•	Ensure that input file paths are correct to avoid data loading errors.
-	•	If filter_ is set to True, appropriate filtering conditions should be provided.
-	•	If save_path is not specified, results will not be saved to a file.
+- Ensure that input file paths are correct to avoid data loading errors.
+- If filter_ is set to True, appropriate filtering conditions will be conducted.
+- If save_path is not specified, results will not be saved to a file.
 
 ### Version Information
 - Author: Siyu Hou
 - Version: early access
 - Last Updated: 2025-01-22
-
-## Build your own LRIs database
-To be continued
 
 
 
