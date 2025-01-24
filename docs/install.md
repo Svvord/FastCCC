@@ -57,16 +57,11 @@ meta_file_path = '../../data/examples/metadata.tsv'
 counts_file_path = '../../data/examples/normalised_log_counts.h5ad'
 convert_type = 'hgnc_symbol'
 
-core.Cauchy_combination_of_statistical_analysis_methods(
+interactions_strength, pvals, percents_analysis = core.statistical_analysis_method(
     cpdb_file_path, 
     meta_file_path,
     counts_file_path,
-    convert_type,
-    cluster_distrib_method_list = ['Mean', 'Quantile_0.9'],
-    complex_distrib_method_list = ['Minimum'],
-    LR_distrib_method_list = ['Arithmetic', 'Geometric'],
-    save_path = '../../results/temp/',
-    use_DEG = True
+    convert_type
 )
 ```
 
