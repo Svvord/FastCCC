@@ -22,6 +22,7 @@ matplotlib = "^3.9.2"
 seaborn = "^0.13.2"
 cellxgene-census = "^1.16.2"
 jinja2 = "^3.1.5"
+psutil = "^6.1.1"
 
 [build-system]
 requires = ["poetry-core"]
