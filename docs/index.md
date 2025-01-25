@@ -34,7 +34,7 @@ It offers a novel approach to computing $$p$$-values using convolution technique
 FastCCC features a modular communication score ($$CS$$) computation framework that captures interaction strength through algebraic operations on ligand-receptor expression levels. This framework can handle multi-subunit protein complexes, increasing the power and robustness of CCC detection.
 3. ### Reference-based CCC comparison analysis
 FastCCC enables reference-based CCC analysis by allowing large-scale datasets to serve as reference panels for more comprehensive analysis of smaller user-collected datasets.
-4. ### Frist human CCC reference panel:
+4. ### Human CCC reference panel:
 We constructed, to the best of our knowledge, the first human CCC reference panel, which includes 19 tissue types and approximately 16 million cells, thereby enhancing the interpretability and consistency of CCC analysis across various biological contexts.
 
 ## Citing the work
