@@ -15,9 +15,14 @@ In this section, we introduce how to install FastCCC. For details on using FastC
 Additionally, FastCCC serves as a comprehensive CCC analysis toolkit with various tools that are widely applicable in single-cell RNA-seq studies. Usage of these tool functions can be found in the [Toolkits]({{ site.baseurl }}/cccref.html) section.
 
 ## Installation
-FastCCC is implemented as a Python (>= 3.11) package. If you wish to use our development version, which allows downloading reference datasets from the [CellxGene] using the FastCCC environment, please note that the current Python version must be lower than 3.13, as [CellxGene-Census] does not support higher versions. FastCCC depends on a few other Python packages that include `numpy`, `pandas`, `scipy`, `scanpy`, `loguru`, `openpyxl`, and `gseapy`. Please refer to the package [pyproject.toml] file for details. For your convenience, you can choose one of the following methods to set up and use the environment.
+FastCCC is implemented as a [Python] (>= 3.11) package. If you wish to use our development version, which allows downloading reference datasets from the [CellxGene] using the FastCCC environment, please note that the current Python version must be lower than 3.13, as [CellxGene-Census] does not support higher versions. FastCCC depends on a few other Python packages that include `numpy`, `pandas`, `scipy`, `scanpy`, `loguru`, `openpyxl`, and `gseapy`. Please refer to the package [pyproject.toml] file for details. For your convenience, you can choose one of the following methods to set up and use the environment.
 
 ### Method 1: Installing via conda
+{: .d-inline-block }
+
+recommend
+{: .label .label-green }
+
 You can install the environment using [`conda`] by following the steps:
 ```bash
 conda create -n FastCCC python=3.11
@@ -33,19 +38,38 @@ cd ./FastCCC
 pip install -e .
 ```
 
+{: .highlight-title }
+> Tips
+>
+> We recommend this installation method for general users, as it has been tested across various servers to ensure a smooth setup and execution.
+
+
 ### Method 2: Installing via pip
-We are currently organizing the code and packaging functionalities to enhance user convenience. Once the code is finalized, we will upload it to [PyPI] to support installation via pip install. At this stage, please use the code available on GitHub and install it using Conda or Poetry.
+{: .d-inline-block }
+Coming soon
+{: .label .label-blue }
+
+{: .important-title }
+> Coming soon
+>
+> We are currently organizing the code and packaging functionalities to enhance user convenience. Once the code is finalized, we will upload it to [PyPI] to support installation via pip install. At this stage, please use the code available on GitHub and install it using Conda or Poetry.
 ```bash
-pip install # coming soon.
+pip install fastccc # coming soon.
 ```
 
 ### Method 3: Installing developing version via Poetry
 For developing, we are using the [Poetry] package manager. To install Poetry, follow the instructions [here](https://python-poetry.org/docs/#installing-with-pipx).
+
 ```bash
 git clone https://github.com/Svvord/FastCCC.git
 cd ./FastCCC
 poetry install
 ```
+
+{: .highlight-title }
+> Tips
+>
+> We recommend creating a dedicated `FastCCC` virtual environment with Python version 3.11 and installing dependencies using [Poetry].
 
 [FastCCC]: https://github.com/Svvord/FastCCC
 [CellxGene]: https://cellxgene.cziscience.com/
@@ -54,3 +78,4 @@ poetry install
 [CellxGene-Census]: https://chanzuckerberg.github.io/cellxgene-census/
 [`conda`]: https://www.anaconda.com/download
 [PyPI]: https://pypi.org/
+[Python]: https://www.python.org/

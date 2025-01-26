@@ -26,5 +26,9 @@ To be continued
 ## How to use FastCCC‘s tools to compute the distribution of the $$k^{th}$$ order statistic for an arbitrary discrete distribution of $$n$$ random variables
 To be continued
 
+## How to use FastCCC to get DEGs
+To be continued
+
 ## Plot tools
 We use R to draw plots, to be continued.
+

@@ -14,12 +14,16 @@ nav_order: 1
 
 
 ## Welcome to the FastCCC website!
-This website maintains FastCCC tutorial and code for reproducing simulation and real data application results described in the upcoming paper. For the software, please refer to [FastCCC].
+This website maintains FastCCC tutorial and code for reproducing simulation and real data application results described in the upcoming paper. 
 
-Please note that we are currently in the submission stage, and the code is still under development and not yet fully packaged. In the future, to enhance user convenience, many functionalities may be restructured with new function names and improvements. If you find that the previous code is no longer applicable, please update it promptly and refer to our latest tutorial. We will finalize a user-friendly version as soon as possible.
+[Get started now]({{ site.baseurl }}/install.html){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View it on GitHub][FastCCC]{: .btn .fs-5 .mb-4 .mb-md-0 }
+
+{: .note }
+> Please note that we are currently in the submission stage, and the code is still under development and not yet fully packaged. In the future, to enhance user convenience, many functionalities may be restructured with new function names and improvements. If you find that the previous code is no longer applicable, please update it promptly and refer to our latest tutorial. We will finalize a user-friendly version as soon as possible.
 
 ## Introduction to FastCCC
-FastCCC is a powerful, permutation-free framework designed to identify critical cell-cell communications (CCCs) in single-cell transcriptomics studies. It provides scalable, robust, and reference-based CCC analysis, enabling researchers to uncover meaningful biological insights from large-scale datasets. FastCCC employs innovative techniques like fast Fourier transformation-based convolution for analytical $$p$$-value computation, modular algebraic operations to capture diverse CCC patterns, and reference panels to enhance analysis on user-collected data.
+FastCCC is a highly scalable, permutation-free statistical toolkit tailored to identify critical cell-cell communications (CCCs) in the form of ligand-receptor interactions (LRIs) and uncover novel biological insights in single-cell transcriptomics studies. FastCCC presents an analytic solution for computing p-values in CCC analysis, enabling scalable analysis without the need for computationally intensive permutations. It introduces a modular communication score computation framework that calculates various communication scores through a range of algebraic operations between ligand and receptor expression levels, capturing a broad spectrum of CCC patterns and ensuring robust analysis. Additionally, FastCCC not only enables the analysis of large-scale datasets containing millions of cells, but also introduces reference-based CCC analysis, where large-scale datasets are treated as reference panels to substantially improve CCC analysis on user-collected datasets.
 
 ## FastCCC overview
 
@@ -27,7 +31,7 @@ FastCCC is a powerful, permutation-free framework designed to identify critical 
   <img src="{{ site.baseurl }}/images/overview.v2.0.jpg" width="700">
 </p>
 
-FastCCC introduces unique features in CCC analysis. 
+FastCCC introduces unique features in CCC analyses. 
 1. ### Ultra-high scalability:
 It offers a novel approach to computing $$p$$-values using convolution techniques through Fast Fourier Transform (FFT), eliminating the need for computationally expensive permutations. This approach makes FastCCC significantly faster and more scalable than existing methods, especially for large datasets. 
 2. ### Modular algebraic operation framework:
@@ -40,7 +44,7 @@ We constructed, to the best of our knowledge, the first human CCC reference pane
 ## Citing the work
 If you find the `FastCCC` package or any of the source code in our [repository] useful for your work, please cite:
 
-> Hou, S., Ma, W., Zhou, X. FastCCC: A permutation-free framework 
+> Siyu Hou, Wenjing Ma, and Xiang Zhou (2025). FastCCC: A permutation-free framework 
 > for scalable, robust, and reference-based cell-cell communication analysis 
 > in single cell transcriptomics studies.
 

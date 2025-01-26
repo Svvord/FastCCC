@@ -7,3 +7,27 @@ url: https://svvord.github.io
 
 aux_links:
   Source code: https://github.com/Svvord/FastCCC
+
+nav_external_links:
+  - title: FastCCC on GitHub
+    url: https://github.com/Svvord/FastCCC
+
+callouts_level: quiet # or loud
+callouts:
+  highlight:
+    color: yellow
+  important:
+    title: Important
+    color: blue
+  new:
+    title: New
+    color: green
+  note:
+    title: Note
+    color: purple
+  warning:
+    title: Warning
+    color: red
+
+back_to_top: true
+back_to_top_text: "Back to top"

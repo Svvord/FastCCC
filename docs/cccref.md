@@ -7,8 +7,16 @@ nav_order: 4
 # FastCCC for Reference-based CCC Analysis
 
 ## Download our constructed human CCC reference panel
-We are currently preparing to upload the fully constructed CCC reference panel, which will be made publicly available soon.
 
+{: .important-title }
+> Coming soon
+>
+> We are currently preparing to upload the fully constructed CCC reference panel, which will be made publicly available soon.
+
+{: .highlight-title }
+> Tips
+>
+> We are currently preparing to upload the fully constructed CCC reference panel, which will be made publicly available soon.
 In the meantime, if you would like to experiment with our reference panel or you want to construct your own reference panels, you can follow our tutorials on [downloading reference datasets]({{ site.baseurl }}/cccref.html#download-large-scale-normal-reference-dataset-from-cellxgene) from CellxGene and [constructing a reference panel from scratch]({{ site.baseurl }}/cccref.html#how-to-build-a-human-ccc-reference-panel-from-scratch-using-fastccc). By following these steps, you can recreate the same reference panel and achieve identical results.
 
 ## How to perform reference-based CCC analysis on a user-collected query dataset
