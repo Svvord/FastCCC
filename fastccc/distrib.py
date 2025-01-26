@@ -21,7 +21,7 @@ pmf_int_bins = np.arange(len(pmf_bins))
 
 mul_index_file_name = os.path.dirname(os.path.abspath(__file__))+os.sep+str(precision)+'index_mat.npy'
 if os.path.exists(mul_index_file_name):
-    logger.success("Loading cached files.")
+    logger.debug("Loading cached files.")
     index_mat = np.load(mul_index_file_name)
 else:
     ############################################

@@ -55,9 +55,9 @@ def Cauchy_combination_of_statistical_analysis_methods(
     celltype_file_path,
     counts_file_path,
     convert_type = 'hgnc_symbol',
-    cluster_distrib_method_list = ['Mean', 'Median', 'Q3', 'Quantile_0.9'],
-    complex_distrib_method_list = ['Minimum', 'Average'],
-    LR_distrib_method_list = ['Arithmetic', 'Geometric'],
+    single_unit_summary_list = ['Mean', 'Median', 'Q3', 'Quantile_0.9'],
+    complex_aggregation_list = ['Minimum', 'Average'],
+    LR_combination_list = ['Arithmetic', 'Geometric'],
     min_percentile = 0.1,
     save_path = None,
     meta_key = None, 
@@ -92,7 +92,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
     )
     logger.success("Data preprocessing done.")
 
-    for cluster_distrib_method in cluster_distrib_method_list:
+    for cluster_distrib_method in single_unit_summary_list:
         cluster_distrib_key = cluster_distrib_method
         current_min_percentile = min_percentile
         # check input
@@ -130,7 +130,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
         elif cluster_distrib_method == 'Quantile':
             mean_pmfs = dist_iid_set.calculate_cluster_quantile_distribution(counts_df, labels_df, quantile)
 
-        for complex_distrib_method in complex_distrib_method_list:
+        for complex_distrib_method in complex_aggregation_list:
             ## Counts for complex
             if complex_distrib_method == 'Minimum':
                 complex_func = score.calculate_complex_min_func
@@ -145,12 +145,12 @@ def Cauchy_combination_of_statistical_analysis_methods(
             mean_pmfs_with_complex = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
         
 
-            for LR_distrib_method in LR_distrib_method_list:
+            for LR_distrib_method in LR_combination_list:
                 method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
 
-                logger.info(f"Running:\n-> {cluster_distrib_key} for celltype cluster.\n"
-                    + f"-> {complex_distrib_method} for complex proteins.\n"
-                    + f"-> {LR_distrib_method} for L-R score.\n"
+                logger.info(f"Running:\n-> {cluster_distrib_key} for single-unit summary function..\n"
+                    + f"-> {complex_distrib_method} for multi-unit complex aggregation.\n"
+                    + f"-> {LR_distrib_method} for L-R combination to compute the CS.\n"
                     + f"-> Percentile is {current_min_percentile}.")
 
                 # Stage IV : P-values
@@ -161,8 +161,8 @@ def Cauchy_combination_of_statistical_analysis_methods(
                     mean_pmfs_with_complex, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
                 )
                 __save_file(interactions_strength, pvals, percents_analysis, save_path, task_id=task_id, method_key=method_key)
-                logger.success("CCI branch calculation done.")      
-    logger.success("All CCI branches calculation done.")  
+                logger.success("CS scoring module calculation done.")      
+    logger.success("All scoring modules calculation done.")  
     cauthy_combine(save_path, task_id=task_id)
     logger.success("Cauthy combination done.") 
 
@@ -189,7 +189,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
             average_strength_df += strength_df.copy()
     average_strength_df = average_strength_df / len(file_list)
     average_strength_df.to_csv(os.path.join(save_path, f'{task_id}_average_interactions_strength.csv'))
-    logger.success("Average communication score calculation done.")
+    logger.success("Average CS across all scoring methods calculation done.")
 
 
 
@@ -201,10 +201,9 @@ def statistical_analysis_method(
     celltype_file_path,
     counts_file_path,
     convert_type = 'hgnc_symbol',
-    cluster_distrib_method = 'Mean',
-    complex_distrib_method = 'Minimum',
-    LR_distrib_method = 'Arithmetic',
-    quantile = 0.9,
+    single_unit_summary = 'Mean',
+    complex_aggregation = 'Minimum',
+    LR_combination = 'Arithmetic',
     min_percentile = 0.1,
     style = None,
     meta_key=None, 
@@ -227,16 +226,18 @@ def statistical_analysis_method(
         "Median": 0.5,
         "Q2": 0.5,
         "Q3": 0.75,
-        "Quantile": quantile
     }
 
-    cluster_distrib_key = cluster_distrib_method
-    if cluster_distrib_method == 'Quantile':
-        cluster_distrib_key = f'Quantile_{quantile}'
+    single_unit_key = single_unit_summary
 
-    if cluster_distrib_method in ["Median", "Q2", "Q3", "Quantile"]:
-        quantile = method_qt_dict[cluster_distrib_method]
-        cluster_distrib_method = 'Quantile'
+    if single_unit_summary.startswith("Quantile_"):
+        quantile = float(single_unit_summary.split("Quantile_")[1])
+        single_unit_summary = "Quantile"
+
+    if single_unit_summary in ["Median", "Q2", "Q3", "Quantile"]:
+        if single_unit_summary in method_qt_dict:
+            quantile = method_qt_dict[single_unit_summary]
+            single_unit_summary = 'Quantile'
         assert quantile < 1 and quantile > 0, "The quantile should be within the range (0, 1)."
         if quantile < 0.5:
             warnings.warn(f"Invalid quantile: {quantile}. The quantile is too low to be effective.", UserWarning)
@@ -245,12 +246,12 @@ def statistical_analysis_method(
     if style not in {None, "cpdb"}:
         raise ValueError(f"Invalid style: {style}. Must be one of [None, 'cpdb']")
     if style == 'cpdb':
-        cluster_distrib_method = 'Mean'
-        complex_distrib_method = 'Minimum'
-        LR_distrib_method = 'Arithmetic'
+        single_unit_summary = 'Mean'
+        complex_aggregation = 'Minimum'
+        LR_combination = 'Arithmetic'
         min_percentile = 0.1
 
-    method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
+    method_key = f'{single_unit_key}_{complex_aggregation}_{LR_combination}'
     
         
     counts_df, labels_df, complex_table, interactions = preprocess.get_input_data(
@@ -265,44 +266,44 @@ def statistical_analysis_method(
     logger.success("Data preprocessing done.")
 
 
-    logger.info(f"Running:\n-> {cluster_distrib_key} for celltype cluster.\n"
-                    + f"-> {complex_distrib_method} for complex proteins.\n"
-                    + f"-> {LR_distrib_method} for L-R score.\n"
+    logger.info(f"Running:\n-> {single_unit_key} for single-unit summary function.\n"
+                    + f"-> {complex_aggregation} for multi-unit complex aggregation.\n"
+                    + f"-> {LR_combination} for L-R combination to compute the CS.\n"
                     + f"-> Percentile is {min_percentile}.")
     
     # Stage I : calculate L-R expression score:
     ## Scores for clusters
-    if cluster_distrib_method == 'Mean':
+    if single_unit_summary == 'Mean':
         mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
-    elif cluster_distrib_method == 'Quantile':
+    elif single_unit_summary == 'Quantile':
         mean_counts = score.calculate_cluster_quantile(counts_df, labels_df, quantile)
     ## Scores for complex
-    if complex_distrib_method == 'Minimum':
+    if complex_aggregation == 'Minimum':
         complex_func = score.calculate_complex_min_func
-    elif complex_distrib_method == 'Average':
+    elif complex_aggregation == 'Average':
         complex_func = score.calculate_complex_mean_func
     mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
     ## Scores for L-R expression
-    interactions_strength = score.calculate_interactions_strength(mean_counts, interactions, method=LR_distrib_method)
+    interactions_strength = score.calculate_interactions_strength(mean_counts, interactions, method=LR_combination)
     
     # Stage II : Percentages
     percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
     percents_analysis = analyze_interactions_percents(percents, interactions, threshold=min_percentile)
 
     # Stage III : Null Distribution
-    if cluster_distrib_method == 'Mean':
+    if single_unit_summary == 'Mean':
         mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)
-    elif cluster_distrib_method == 'Quantile':
+    elif single_unit_summary == 'Quantile':
         mean_pmfs = dist_iid_set.calculate_cluster_quantile_distribution(counts_df, labels_df, quantile)
-    if complex_distrib_method == 'Minimum':
+    if complex_aggregation == 'Minimum':
         complex_func = dist_complex.get_minimum_distribution
-    elif complex_distrib_method == 'Average':
+    elif complex_aggregation == 'Average':
         complex_func = dist_complex.get_average_distribution
     mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
     
     # Stage IV : P-values
     pvals = dist_lr.calculate_key_interactions_pvalue(
-        mean_pmfs, interactions, interactions_strength, percents_analysis, method=LR_distrib_method
+        mean_pmfs, interactions, interactions_strength, percents_analysis, method=LR_combination
     )
     logger.success("FastCCC calculation done.")
 

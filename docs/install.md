@@ -12,7 +12,7 @@ nav_order: 2
 ## Introduction
 In this section, we introduce how to install FastCCC. For details on using FastCCC, please check the [Basic Usage]({{ site.baseurl }}/usage.html) section for an overview of the core functions and how to run CCC analysis on a single-cell dataset. For examples on how to build the human CCC reference panel and perform CCC analysis on user-collected query datasets, refer to the [Human CCC Reference]({{ site.baseurl }}/cccref.html) section.
 
-Additionally, FastCCC serves as a comprehensive CCC analysis toolkit with various tools that are widely applicable in single-cell RNA-seq studies. Usage of these tool functions can be found in the [Toolkits]({{ site.baseurl }}/cccref.html) section.
+Additionally, FastCCC serves as a comprehensive CCC analysis toolkit with various tools that are widely applicable in single-cell RNA-seq studies. Usage of these tool functions can be found in the [Toolkits]({{site.baseurl}}/cccref.html) section.
 
 ## Installation
 FastCCC is implemented as a [Python] (>= 3.11) package. If you wish to use our development version, which allows downloading reference datasets from the [CellxGene] using the FastCCC environment, please note that the current Python version must be lower than 3.13, as [CellxGene-Census] does not support higher versions. FastCCC depends on a few other Python packages that include `numpy`, `pandas`, `scipy`, `scanpy`, `loguru`, `openpyxl`, and `gseapy`. Please refer to the package [pyproject.toml] file for details. For your convenience, you can choose one of the following methods to set up and use the environment.
@@ -70,6 +70,7 @@ poetry install
 > Tips
 >
 > We recommend creating a dedicated `FastCCC` virtual environment with Python version 3.11 and installing dependencies using [Poetry].
+
 
 [FastCCC]: https://github.com/Svvord/FastCCC
 [CellxGene]: https://cellxgene.cziscience.com/
