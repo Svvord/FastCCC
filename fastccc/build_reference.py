@@ -240,26 +240,7 @@ def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, compl
     mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
     complex_func = score.calculate_complex_min_func
     mean_counts = score.combine_complex_distribution_df(mean_counts, complex_table, complex_func)
-    
-    # calculate IS score, and ligand receptor
-    p1_index = []
-    p2_index = []
-    all_index = []
-    for i in itertools.product(sorted(mean_counts.index), sorted(mean_counts.index)):
-        p1_index.append(i[0])
-        p2_index.append(i[1])
-        all_index.append('|'.join(i))
-    p1 = mean_counts.loc[p1_index, interactions['multidata_1_id']]
-    p2 = mean_counts.loc[p2_index, interactions['multidata_2_id']]
-    p1.columns = interactions.index
-    p2.columns = interactions.index
-    p1.index = all_index
-    p2.index = all_index
-    interactions_strength = (p1 + p2)/2 * (p1 > 0) * (p2>0)
-
     percents = calculate_cluster_percents(counts_df, labels_df, complex_table)
-    # percents_analysis = analyze_interactions_percents(percents, interactions, threshold=min_percentile)
-    L_perc, R_perc, percents_analysis = calculate_L_R_and_IS_percents(percents, interactions, threshold=min_percentile)
 
     n_bins = 50
     precision_digit = 0.01
@@ -292,50 +273,63 @@ def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, compl
             scale = basic_info_dict[gene]['scale']
             gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, loc=loc, scale=scale, is_align=True)
 
-    meta_dict = Counter(labels_df.cell_type)
-    ####### clusters_mean #######
-    clusters_mean_dict = {}
-    for celltype in sorted(meta_dict):
-        clusters_mean_dict[celltype]  = {}
-        n_sum = meta_dict[celltype]
-        if n_sum < n_fft:
-            for gene in counts_df.columns:
-                clusters_mean_dict[celltype][gene] = gene_pmf_dict[gene][n_sum]
-        else:
-            for gene in counts_df.columns:
-                clusters_mean_dict[celltype][gene] = gene_pmf_dict[gene][1] ** n_sum / n_sum
-    mean_pmfs = pd.DataFrame(clusters_mean_dict).T
-    complex_func = get_minimum_distribution_for_digit
-    mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
+    if ref_debug_mode or query_debug_mode:
+        p1_index = []
+        p2_index = []
+        all_index = []
+        for i in itertools.product(sorted(mean_counts.index), sorted(mean_counts.index)):
+            p1_index.append(i[0])
+            p2_index.append(i[1])
+            all_index.append('|'.join(i))
+        p1 = mean_counts.loc[p1_index, interactions['multidata_1_id']]
+        p2 = mean_counts.loc[p2_index, interactions['multidata_2_id']]
+        p1.columns = interactions.index
+        p2.columns = interactions.index
+        p1.index = all_index
+        p2.index = all_index
+        interactions_strength = (p1 + p2)/2 * (p1 > 0) * (p2>0)
+        L_perc, R_perc, percents_analysis = calculate_L_R_and_IS_percents(percents, interactions, threshold=min_percentile)
+        
+        meta_dict = Counter(labels_df.cell_type)
+        ####### clusters_mean #######
+        clusters_mean_dict = {}
+        for celltype in sorted(meta_dict):
+            clusters_mean_dict[celltype]  = {}
+            n_sum = meta_dict[celltype]
+            if n_sum < n_fft:
+                for gene in counts_df.columns:
+                    clusters_mean_dict[celltype][gene] = gene_pmf_dict[gene][n_sum]
+            else:
+                for gene in counts_df.columns:
+                    clusters_mean_dict[celltype][gene] = gene_pmf_dict[gene][1] ** n_sum / n_sum
+        mean_pmfs = pd.DataFrame(clusters_mean_dict).T
+        complex_func = get_minimum_distribution_for_digit
+        mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
 
-    logger.info("Calculating sig. LRIs.")
-    pvals = dist_lr.calculate_key_interactions_pvalue(
-        mean_pmfs, interactions, interactions_strength, percents_analysis, method='Arithmetic'
-    )
+        logger.info("Calculating sig. LRIs.")
+        pvals = dist_lr.calculate_key_interactions_pvalue(
+            mean_pmfs, interactions, interactions_strength, percents_analysis, method='Arithmetic'
+        )
 
-    if query_debug_mode:
-        pvals.to_csv(f'{save_path}/debug_pvals.txt', sep='\t')
-        return
+        if query_debug_mode:
+            pvals.to_csv(f'{save_path}/debug_pvals.txt', sep='\t')
+            return
+
+        if ref_debug_mode:
+            pvals.to_csv(f'{save_path}/ref_pvals.txt', sep='\t')
+            percents_analysis.to_csv(f'{save_path}/ref_percents_analysis.txt', sep='\t')
+            L_perc.to_csv(f'{save_path}/ref_percents_L.txt', sep='\t')
+            R_perc.to_csv(f'{save_path}/ref_percents_R.txt', sep='\t')
+            # interactions_strength.to_csv(f'{save_path}/ref_interactions_strength.csv')
+            p1.to_csv(f'{save_path}/ref_interactions_strength_L.txt', sep='\t')
+            p2.to_csv(f'{save_path}/ref_interactions_strength_R.txt', sep='\t')
+
     ####### save reference results #######
     logger.info("Saving reference.")
-    if ref_debug_mode:
-        pvals.to_csv(f'{save_path}/ref_pvals.txt', sep='\t')
-        percents_analysis.to_csv(f'{save_path}/ref_percents_analysis.txt', sep='\t')
-        L_perc.to_csv(f'{save_path}/ref_percents_L.txt', sep='\t')
-        R_perc.to_csv(f'{save_path}/ref_percents_R.txt', sep='\t')
-        # interactions_strength.to_csv(f'{save_path}/ref_interactions_strength.csv')
-        p1.to_csv(f'{save_path}/ref_interactions_strength_L.txt', sep='\t')
-        p2.to_csv(f'{save_path}/ref_interactions_strength_R.txt', sep='\t')
-
-    # 25-01-07 add
-    # percents.to_csv(f'{save_path}/ref_percents.txt', sep='\t')
-    # mean_counts.to_csv(f'{save_path}/ref_mean_counts.txt', sep='\t')
     with open(f'{save_path}/ref_percents.pkl', 'wb') as f:
         pickle.dump(percents, f)
     with open(f'{save_path}/ref_mean_counts.pkl', 'wb') as f:
         pickle.dump(mean_counts, f)
-    # 25-01-07 end
-
     with open(f'{save_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
         pickle.dump(gene_pmf_dict, f)
     with open(f'{save_path}/complex_table.pkl', 'wb') as f:

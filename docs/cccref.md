@@ -125,21 +125,20 @@ fastccc.build_reference.build_reference_workflow(
 )
 ```
 <blockquote class="new-title"> <p>output</p>
-<div class="highlight"><pre class="highlight"><code><span class="sr">2025-01-26 19:29:00</span> | INFO     | Start building CCC reference.
-<span class="sr">2025-01-26 19:29:00</span> | INFO     | Reference_name = lung
-<span class="sr">2025-01-26 19:29:00</span> | INFO     | min_percentile = 0.1
-<span class="sr">2025-01-26 19:29:00</span> | INFO     | LRI database = CPDBv5.0.0
-<span class="sr">2025-01-26 19:29:00</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference save dir your/save/path/reference/lung is created.</span>
-<span class="sr">2025-01-26 19:34:17</span> | INFO     | Reading reference adata, 1673947 cells x 60530 genes.                                             
-<span class="sr">2025-01-26 19:37:12</span> | <span class="sb">SUCCESS </span> | <span class="sb">Rank preprocess done.</span>
-<span class="sr">2025-01-26 19:39:11</span> | INFO     | Loading LRIs database. hgnc_symbol as gene name is requested.
-<span class="sr">2025-01-26 19:40:31</span> | <span class="sb">SUCCESS </span> | <span class="sb">Requested data for fastccc is prepared.</span>
-<span class="sr">2025-01-26 19:40:31</span> | INFO     | Running FastCCC.
-<span class="sr">2025-01-26 19:42:11</span> | INFO     | Calculating null distributions.
-<span class="sr">2025-01-26 19:43:21</span> | INFO     | Calculating sig. LRIs.
-<span class="sr">2025-01-26 19:50:22</span> | INFO     | Saving reference.
-<span class="sr">2025-01-26 19:50:27</span> | INFO     | Saving reference config.
-<span class="sr">2025-01-26 19:50:27</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference 'lung' is built.</span>
+<div class="highlight"><pre class="highlight"><code><span class="sr">2025-01-27 10:33:14</span> | INFO     | Start building CCC reference.
+<span class="sr">2025-01-27 10:33:14</span> | INFO     | Reference_name = lung
+<span class="sr">2025-01-27 10:33:14</span> | INFO     | min_percentile = 0.1
+<span class="sr">2025-01-27 10:33:14</span> | INFO     | LRI database = CPDBv5.0.0
+<span class="sr">2025-01-27 10:33:14</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference save dir your/save/path/reference/lung is created.</span>
+<span class="sr">2025-01-27 10:34:03</span> | INFO     | Reading reference adata, 1673947 cells x 60530 genes.                  
+<span class="sr">2025-01-27 10:36:55</span> | <span class="sb">SUCCESS </span> | <span class="sb">Rank preprocess done.</span>
+<span class="sr">2025-01-27 10:37:23</span> | INFO     | Loading LRIs database. hgnc_symbol as gene name is requested.
+<span class="sr">2025-01-27 10:38:08</span> | <span class="sb">SUCCESS </span> | <span class="sb">Requested data for fastccc is prepared.</span>
+<span class="sr">2025-01-27 10:38:08</span> | INFO     | Running FastCCC.
+<span class="sr">2025-01-27 10:38:36</span> | INFO     | Calculating null distributions.
+<span class="sr">2025-01-27 10:39:25</span> | INFO     | Saving reference.
+<span class="sr">2025-01-27 10:39:30</span> | INFO     | Saving reference config.
+<span class="sr">2025-01-27 10:39:30</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference 'lung' is built.</span>
 </code></pre></div>
 </blockquote>
 
