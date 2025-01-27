@@ -185,7 +185,7 @@ fastccc.Cauchy_combination_of_statistical_analysis_methods(
 -> Percentile is 0.1.
 <span class="sr">2025-01-26 12:17:25</span> | <span class="sb">SUCCESS </span> | <span class="sb">CS scoring module calculation done.</span>
 <span class="sr">2025-01-26 12:17:26</span> | INFO     | Running:
--> Mean for single-unit summary function..
+-> Mean for single-unit summary function.
 -> Average for multi-unit complex aggregation.
 -> Arithmetic for L-R combination to compute the CS.
 -> Percentile is 0.1.
@@ -234,7 +234,7 @@ fastccc.Cauchy_combination_of_statistical_analysis_methods(
 <span class="sr">2025-01-26 09:38:39</span> | INFO     | Directory already exists: ../../results/temp/
 <span class="sr">2025-01-26 09:38:40</span> | <span class="sb">SUCCESS </span> | <span class="sb">Data preprocessing done.</span>
 <span class="sr">2025-01-26 09:38:48</span> | INFO     | Running:
--> Mean for single-unit summary function..
+-> Mean for single-unit summary function.
 -> Minimum for multi-unit complex aggregation.
 -> Arithmetic for L-R combination to compute the CS.
 -> Percentile is 0.1.

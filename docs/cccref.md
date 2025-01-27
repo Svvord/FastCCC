@@ -38,6 +38,25 @@ fastccc.infer_query.infer_query_workflow(
     meta_key = 'cell_type'
 )
 ```
+<blockquote class="new-title"> <p>output</p>
+<div class="highlight"><pre class="highlight"><code><span class="sr">2025-01-26 20:54:32</span> | INFO     | Start inferring by using CCC reference: lung
+<span class="sr">2025-01-26 20:54:32</span> | INFO     | Reference min_percentile = 0.1
+<span class="sr">2025-01-26 20:54:32</span> | INFO     | Reference LRI DB = CPDBv5.0.0
+<span class="sr">2025-01-26 20:54:35</span> | INFO     | Reading query adata, (your data) cells x (your data) genes.                               
+<span class="sr">2025-01-26 20:54:51</span> | <span class="sb">SUCCESS </span> | <span class="sb">Rank preprocess done.</span>
+<span class="sr">2025-01-26 20:54:53</span> | INFO     | Loading LRIs database. hgnc_symbol as gene name is requested.
+<span class="sr">2025-01-26 20:54:55</span> | <span class="sb">SUCCESS </span> | <span class="sb">Requested data for fastccc is prepared.</span>
+<span class="sr">2025-01-26 20:54:55</span> | INFO     | Loading reference data.
+<span class="sr">2025-01-26 20:54:57</span> | INFO     | Reference cell types label will be used directly.
+<span class="sr">2025-01-26 20:54:58</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference data is loaded.</span>
+<span class="sr">2025-01-26 20:54:58</span> | INFO     | Calculating CS score for query data.
+<span class="sr">2025-01-26 20:55:00</span> | INFO     | Filtering reference data.
+<span class="sr">2025-01-26 20:55:01</span> | INFO     | Filtering by using reference.
+<span class="sr">2025-01-26 20:55:01</span> | INFO     | Inferring sig. boundaries.
+<span class="sr">2025-01-26 20:55:03</span> | INFO     | Saving inference results.
+<span class="sr">2025-01-26 20:55:04</span> | <span class="sb">SUCCESS </span> | <span class="sb">Inference workflow done.</span>
+</code></pre></div>
+</blockquote>
 
 ## Download large-scale normal reference dataset from CellxGene
 ```python
@@ -105,6 +124,24 @@ fastccc.build_reference.build_reference_workflow(
     meta_key = 'cell_type'
 )
 ```
+<blockquote class="new-title"> <p>output</p>
+<div class="highlight"><pre class="highlight"><code><span class="sr">2025-01-26 19:29:00</span> | INFO     | Start building CCC reference.
+<span class="sr">2025-01-26 19:29:00</span> | INFO     | Reference_name = lung
+<span class="sr">2025-01-26 19:29:00</span> | INFO     | min_percentile = 0.1
+<span class="sr">2025-01-26 19:29:00</span> | INFO     | LRI database = CPDBv5.0.0
+<span class="sr">2025-01-26 19:29:00</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference save dir your/save/path/reference/lung is created.</span>
+<span class="sr">2025-01-26 19:34:17</span> | INFO     | Reading reference adata, 1673947 cells x 60530 genes.                                             
+<span class="sr">2025-01-26 19:37:12</span> | <span class="sb">SUCCESS </span> | <span class="sb">Rank preprocess done.</span>
+<span class="sr">2025-01-26 19:39:11</span> | INFO     | Loading LRIs database. hgnc_symbol as gene name is requested.
+<span class="sr">2025-01-26 19:40:31</span> | <span class="sb">SUCCESS </span> | <span class="sb">Requested data for fastccc is prepared.</span>
+<span class="sr">2025-01-26 19:40:31</span> | INFO     | Running FastCCC.
+<span class="sr">2025-01-26 19:42:11</span> | INFO     | Calculating null distributions.
+<span class="sr">2025-01-26 19:43:21</span> | INFO     | Calculating sig. LRIs.
+<span class="sr">2025-01-26 19:50:22</span> | INFO     | Saving reference.
+<span class="sr">2025-01-26 19:50:27</span> | INFO     | Saving reference config.
+<span class="sr">2025-01-26 19:50:27</span> | <span class="sb">SUCCESS </span> | <span class="sb">Reference 'lung' is built.</span>
+</code></pre></div>
+</blockquote>
 
 ## Functions
 To be continued.
