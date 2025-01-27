@@ -22,15 +22,14 @@ In the meantime, if you would like to experiment with our reference panel or you
 ## How to perform reference-based CCC analysis on a user-collected query dataset
 
 ```python
-import fastcci.infer_query
-import scanpy as sc
+import fastccc.infer_query
 ## Modify the file path according to the location where you run the code.
-database_file_path = 'FastCCC/db/v5.0.0/' 
+database_file_path = 'FastCCC/db/CPDBv5.0.0/' 
 reference_path = 'your/save/path/reference/lung/'
 tissue_query_file = 'your/save/path/user_collected_query.h5ad'
 save_path = 'your/save/path/user_collected_query/'
 
-fastcci.infer_query.infer_query_workflow(
+fastccc.infer_query.infer_query_workflow(
     database_file_path = database_file_path,
     reference_path = reference_path,
     query_counts_file_path = tissue_query_file,
@@ -48,7 +47,6 @@ census = cellxgene_census.open_soma()
 filter_condition = "tissue_general == 'lung' "
 filter_condition += "and disease == 'normal' "
 filter_condition += "and is_primary_data == False "
-filter_condition += "and tissue=='lung' "
 filter_condition += "and cell_type!='unknown' "
 
 adata = cellxgene_census.get_anndata(
@@ -91,15 +89,14 @@ reference_adata.write_h5ad('your/save/path/lung_reference.h5ad')
 Then, one can build a reference panel like the following code
 ```python
 ## Build human lung reference panel.
-import fastcci.build_reference
-import scanpy as sc
+import fastccc.build_reference
 ## Modify the file path according to the location where you run the code.
-database_file_path = 'FastCCC/db/v5.0.0/' 
+database_file_path = 'FastCCC/db/CPDBv5.0.0/' 
 tissue_reference_file = 'your/save/path/lung_reference.h5ad'
 save_path = 'your/save/path/reference/'
 reference_name = 'lung',
 
-fastcci.build_reference.build_reference_workflow(
+fastccc.build_reference.build_reference_workflow(
     database_file_path = database_file_path,
     reference_counts_file_path = tissue_reference_file,
     celltype_file_path = None,

@@ -317,7 +317,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     # print(real_ref_pvals.values[tmp])
     # print('ref')
     # print(ref_pvals.values[tmp])
-    print(f'ref_pvals shape: {ref_pvals.shape}')
+    # print(f'ref_pvals shape: {ref_pvals.shape}')
     ref_percents_analysis= ref_percents_analysis.loc[common_ind, common_col]
     ref_p1= ref_p1.loc[common_ind, common_col]
     ref_p2= ref_p2.loc[common_ind, common_col]
@@ -607,8 +607,21 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
     query_hk = pd.DataFrame(np.array(mean_hk_rnk).flatten(), index=gene_index, columns=['query_hk'])
     ref_hk = pd.read_csv(f'{reference_path}/ref_hk.txt', sep='\t', index_col=0)
     hk_df = pd.merge(query_hk, ref_hk, left_index=True, right_index=True)
-    k = np.sqrt(1 / np.mean(np.square((hk_df.ref_hk - hk_df.query_hk) / hk_df.ref_hk)))
 
+    mean_list = []
+    std_list = []
+    mean_by_std_list = []
+    for i in np.arange(0,30):
+        foo = np.where(np.logical_and(hk_df.ref_hk >=i, hk_df.ref_hk < i+5))
+        mean_ = np.mean(np.array(hk_df.ref_hk)[foo])
+        std_ = np.sqrt(np.mean(np.square(np.array(hk_df.query_hk)[foo] - np.array(hk_df.ref_hk)[foo])))
+        mean_list.append(mean_)
+        std_list.append(std_)
+        mean_by_std_list.append(mean_/std_)
+    k = np.nanmean(mean_by_std_list)
+    logger.debug(f"k={k}")
+    k = max(3, k)
+    
     if debug_mode:
         import matplotlib.pyplot as plt 
         plt.figure(figsize=(6,3))
@@ -618,24 +631,11 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
         plt.scatter(np.log(hk_df.query_hk), np.log(hk_df.ref_hk), s=3, alpha=0.1)
         plt.savefig(f'{save_path}/hk_scatter.jpg')
 
-        mean_list = []
-        std_list = []
-        mean_by_std_list = []
-        for i in np.arange(0,30):
-            foo = np.where(np.logical_and(hk_df.ref_hk >=i, hk_df.ref_hk < i+5))
-            mean_ = np.mean(np.array(hk_df.ref_hk)[foo])
-            std_ = np.sqrt(np.mean(np.square(np.array(hk_df.query_hk)[foo] - np.array(hk_df.ref_hk)[foo])))
-            mean_list.append(mean_)
-            std_list.append(std_)
-            mean_by_std_list.append(mean_/std_)
         plt.figure(figsize=(3,3))
         plt.scatter(mean_list, std_list)
         plt.title(np.nanmean(mean_by_std_list))
-        print(np.nanmean(mean_by_std_list))
         plt.savefig(f'{save_path}/hk_mean_by_std.jpg')
-
-        return np.nanmean(mean_by_std_list)
-
+        
     return k
     
 
@@ -645,7 +645,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     
     with open(f'{reference_path}/config.toml', 'rb') as f:
         config = tomllib.load(f)
-        logger.info(f"Start inferring by using CCI reference: {config['reference_name']}")
+        logger.info(f"Start inferring by using CCC reference: {config['reference_name']}")
         logger.info(f"Reference min_percentile = {config['min_percentile']}")
         logger.info(f"Reference LRI DB = {config['LRI_database']}")
 
@@ -676,15 +676,15 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
         query.write_h5ad(f"{save_path}/debug_digit.h5ad")
 
     k = calculate_adjust_factor(query, reference_path, save_path, debug_mode)
-    logger.info(f"k={k}")
-    if k < 3:
-        k = 3
+
     counts_df, complex_table, interactions = get_fastccc_input(query, database_file_path)
+    
     if debug_mode:
         logger.debug("Entering debug process")
         from .build_reference import fastccc_for_reference
         fastccc_for_reference('', save_path, counts_df, labels_df, complex_table, interactions, min_percentile = config['min_percentile'], query_debug_mode=True)
         logger.debug("Debug ends.")
+
     compare_with_reference(
         counts_df, labels_df, complex_table, interactions, reference_path, save_path, 
         config=config, celltype_mapping_dict = celltype_mapping_dict, 

@@ -148,7 +148,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
             for LR_distrib_method in LR_combination_list:
                 method_key = f'{cluster_distrib_key}_{complex_distrib_method}_{LR_distrib_method}'
 
-                logger.info(f"Running:\n-> {cluster_distrib_key} for single-unit summary function..\n"
+                logger.info(f"Running:\n-> {cluster_distrib_key} for single-unit summary function.\n"
                     + f"-> {complex_distrib_method} for multi-unit complex aggregation.\n"
                     + f"-> {LR_distrib_method} for L-R combination to compute the CS.\n"
                     + f"-> Percentile is {current_min_percentile}.")

@@ -231,7 +231,7 @@ def get_fastccc_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
     select_index = [True if item in temp_list else False for item in complex_table.complex_multidata_id]
     complex_table = complex_table[select_index]
     interactions = interactions_filtered
-    logger.success("Requested data for fastccc is prepared")
+    logger.success("Requested data for fastccc is prepared.")
     return counts_df, complex_table, interactions
 
 
@@ -399,14 +399,14 @@ def _dumps_value(value):
             )
 
 def save_config(save_path):
-    logger.info("Saving reference config")
+    logger.info("Saving reference config.")
     save_content = dumps(reference_config)
     with open(f'{save_path}/config.toml', 'w') as f:
         f.write(save_content) 
 
 
 def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1, debug_mode=False):
-    logger.info(f"Start building CCI reference: {reference_name}")
+    logger.info(f"Start building CCC reference.")
 
     reference_config['reference_name'] = reference_name
     reference_config['min_percentile'] = min_percentile
@@ -428,7 +428,7 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
 
     reference = sc.read_h5ad(reference_counts_file_path)
     sc.pp.filter_cells(reference, min_genes=50)
-    logger.info(f"Reading reference adata, {reference.shape[0]} cells x {reference.shape[1]} genes")
+    logger.info(f"Reading reference adata, {reference.shape[0]} cells x {reference.shape[1]} genes.")
 
     if meta_key is not None:
         labels_df = pd.DataFrame(reference.obs[meta_key])
