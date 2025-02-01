@@ -143,7 +143,7 @@ def statistical_analysis_method(
 |-------------------------|-----------------|--------------------|--------------|
 | `database_file_path`     | `str`            |                | Path to the database directory containing the candidate LRIs. |
 | `celltype_file_path`     | `str`            |                | Path to the cell type annotation file. If the h5ad count file already contains cell type labels, this can be set to `None`, and the `meta_key` parameter should be specified instead. |
-| `counts_file_path`       | `str`            |                | Path to the normalized log1p-transformed matrix file in h5ad format. |
+| `counts_file_path`       | `str`            |                | Path to the ***normalized log1p-transformed matrix*** file in h5ad format. |
 | `convert_type`           | `str`            | `'hgnc_symbol'`     | Type of gene identifier used in your data, such as `'hgnc_symbol'` or `'ensembl'`. |
 | `single_unit_summary` | `str`            | `'Mean'`            | Method for calculating single-unit expression summaries, options include `'Mean'`, `'Median'` or `'Q2'`, `'Q3'`, `'Quantile_x'`, etc. |
 | `complex_aggregation` | `str`            | `'Minimum'`         | Method for calculating multi-unit complex summaries, options include `'Minimum'`, `'Average'`. |
@@ -211,12 +211,12 @@ The `fastccc.core.Cauchy_combination_of_statistical_analysis_methods` function p
 | `filter_`                     | `bool`        | `False`                                          | Whether to enable data filtering. If set to `True`, empty cells and genes will be removed. |
 | `use_DEG`                     | `bool`        | `False`                                          | Whether to use differentially expressed genes (DEGs) in the analysis. |
 
----
 
 #### Returns
 
 No variables will be returned directly. Instead, all scoring-specific results, along with the final combined results, will be saved to the user-specified folder.
 
+---
 
 ### Version Information
 - Author: Siyu Hou
