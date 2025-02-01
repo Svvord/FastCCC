@@ -1,5 +1,9 @@
 # FastCCC: A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies.
 
+[![Preprint](https://img.shields.io/badge/preprint-available-brightgreen)](https://www.biorxiv.org/content/10.1101/2025.01.27.635115v1) &nbsp;
+[![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://svvord.github.io/FastCCC/) &nbsp;
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Svvord/FastCCC/blob/main/LICENSE)
+
 **[2025.01.23]** We have provided a comprehensive [tutorial](https://svvord.github.io/FastCCC/) on the usage of FastCCC, which includes detailed instructions on installation, usage, and more. We highly recommend referring to this [tutorial](https://svvord.github.io/FastCCC/) for a step-by-step guide.
 
 ## Overview
@@ -43,9 +47,19 @@ Check our [vignettes](https://svvord.github.io/FastCCC/).
 ## Citing the work
 If you find the `FastCCC` package or any of the source code in this repository useful for your work, please cite:
 
-> Hou, S., Ma, W., Zhou, X. FastCCC: A permutation-free framework 
+> Siyu Hou, Wenjing Ma, and Xiang Zhou (2025). FastCCC: A permutation-free framework 
 > for scalable, robust, and reference-based cell-cell communication analysis 
 > in single cell transcriptomics studies.
+
+```
+@article {hou2025fastCCC,
+	author = {Hou, Siyu and Ma, Wenjing and Zhou, Xiang},
+	title = {FastCCC: A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies},
+	year = {2025},
+	publisher = {Cold Spring Harbor Laboratory},
+	journal = {bioRxiv}
+}
+```
 
 Visit our [group website](https://xiangzhou.github.io/) for more statistical 
 tools on analyzing genetics, genomics and transcriptomics data.
