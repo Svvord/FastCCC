@@ -639,6 +639,44 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
     return k
     
 
+def update_reference_for_first_time_activation(reference_path):
+    with open(f'{reference_path}/basic_info_dict.pkl', 'rb') as f:
+        basic_info_dict = pickle.load(f)
+    
+    from scipy.signal import fftconvolve
+    from .distrib_digit import Distribution_digit
+    
+    n_bins = 50
+    precision_digit = 0.01
+    pmf_bins_digit = np.arange(0, n_bins+precision_digit - 1e-10, precision_digit)
+
+    n_fft = 100
+    gene_sum_pmf_dict = {}
+    for gene in basic_info_dict:
+        loc = basic_info_dict[gene]['loc'] 
+        scale =  basic_info_dict[gene]['scale']
+        gene_sum_pmf_dict[gene] = {1: basic_info_dict[gene]['expr_dist']}
+        for item in range(2,n_fft):
+            gene_sum_pmf_dict[gene][item] = fftconvolve(gene_sum_pmf_dict[gene][item-1], gene_sum_pmf_dict[gene][1])
+
+    gene_pmf_dict = {}
+    for gene in basic_info_dict:
+        gene_pmf_dict[gene] = {}
+        loc = basic_info_dict[gene]['loc']
+        scale = basic_info_dict[gene]['scale']
+        for item in range(1,n_fft):
+            pmf = gene_sum_pmf_dict[gene][item]
+            cdf = np.cumsum(pmf)
+            pmf_array = np.diff(cdf[np.int64(pmf_bins_digit * item)],prepend=0)
+            if item == 1:
+                gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, loc=loc, scale=scale, is_align=True)
+            else:
+                gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, is_align=True)
+
+    with open(f'{reference_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
+        pickle.dump(gene_pmf_dict, f)
+
+    logger.success(f"Reference panel data updated.")
 
 
 def infer_query_workflow(database_file_path, reference_path, query_counts_file_path, celltype_file_path, save_path, celltype_mapping_dict=None, meta_key=None, debug_mode=False):
@@ -649,6 +687,9 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
         logger.info(f"Reference min_percentile = {config['min_percentile']}")
         logger.info(f"Reference LRI DB = {config['LRI_database']}")
 
+    if not os.path.exists(f'{reference_path}/ref_gene_pmf_dict.pkl'):
+        logger.info(f"Updating reference panel data for first time activation.")
+        update_reference_for_first_time_activation(reference_path)
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)

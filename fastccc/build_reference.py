@@ -235,7 +235,7 @@ def get_fastccc_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
     return counts_df, complex_table, interactions
 
 
-def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, ref_debug_mode=False, query_debug_mode=False):
+def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile = 0.1, ref_debug_mode=False, query_debug_mode=False, for_uploading=False):
     logger.info("Running FastCCC.")
     mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
     complex_func = score.calculate_complex_min_func
@@ -259,19 +259,24 @@ def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, compl
         basic_info_dict[gene] = {'loc':loc, 'scale':scale}
 
         gene_sum_pmf_dict[gene] = {1: get_pmf_array_from_samples_for_digitized_bins(samples)}
+        basic_info_dict[gene]['expr_dist'] = gene_sum_pmf_dict[gene][1]
+
         for item in range(2,n_fft):
             gene_sum_pmf_dict[gene][item] = fftconvolve(gene_sum_pmf_dict[gene][item-1], gene_sum_pmf_dict[gene][1])
 
     gene_pmf_dict = {}
     for gene in counts_df.columns:
         gene_pmf_dict[gene] = {}
+        loc = basic_info_dict[gene]['loc']
+        scale = basic_info_dict[gene]['scale']
         for item in range(1,n_fft):
             pmf = gene_sum_pmf_dict[gene][item]
             cdf = np.cumsum(pmf)
             pmf_array = np.diff(cdf[np.int64(pmf_bins_digit * item)],prepend=0)
-            loc = basic_info_dict[gene]['loc']
-            scale = basic_info_dict[gene]['scale']
-            gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, loc=loc, scale=scale, is_align=True)
+            if item == 1:
+                gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, loc=loc, scale=scale, is_align=True)
+            else:
+                gene_pmf_dict[gene][item] = Distribution_digit('other', pmf_array=pmf_array, is_align=True)
 
     if ref_debug_mode or query_debug_mode:
         p1_index = []
@@ -326,12 +331,16 @@ def fastccc_for_reference(reference_name, save_path, counts_df, labels_df, compl
 
     ####### save reference results #######
     logger.info("Saving reference.")
+    if for_uploading:
+        with open(f'{save_path}/basic_info_dict.pkl', 'wb') as f:
+            pickle.dump(basic_info_dict, f)
+    else:
+        with open(f'{save_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
+            pickle.dump(gene_pmf_dict, f)
     with open(f'{save_path}/ref_percents.pkl', 'wb') as f:
         pickle.dump(percents, f)
     with open(f'{save_path}/ref_mean_counts.pkl', 'wb') as f:
         pickle.dump(mean_counts, f)
-    with open(f'{save_path}/ref_gene_pmf_dict.pkl', 'wb') as f:
-        pickle.dump(gene_pmf_dict, f)
     with open(f'{save_path}/complex_table.pkl', 'wb') as f:
         pickle.dump(complex_table, f)
     with open(f'{save_path}/interactions.pkl', 'wb') as f:
@@ -399,7 +408,7 @@ def save_config(save_path):
         f.write(save_content) 
 
 
-def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1, debug_mode=False):
+def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1, debug_mode=False, for_uploading=False):
     logger.info(f"Start building CCC reference.")
 
     reference_config['reference_name'] = reference_name
@@ -440,7 +449,7 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
     reference = rank_preprocess(reference)
     record_adjustment_info(reference, save_path)
     counts_df, complex_table, interactions = get_fastccc_input(reference, database_file_path)
-    fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile, ref_debug_mode=debug_mode)
+    fastccc_for_reference(reference_name, save_path, counts_df, labels_df, complex_table, interactions, min_percentile, ref_debug_mode=debug_mode, for_uploading=for_uploading)
     save_config(save_path)
     logger.success(f"Reference '{reference_name}' is built.")
 
