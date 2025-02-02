@@ -1,0 +1,17 @@
+reference_name = "cerebral_cortex"
+min_percentile = 0.1
+LRI_database = "CPDBv5.0.0"
+
+[celltype]
+"oligodendrocyte" = 136538
+"ependymal cell" = 2
+"endothelial cell" = 2418
+"vascular associated smooth muscle cell" = 284
+"pericyte" = 974
+"fibroblast" = 2393
+"choroid plexus epithelial cell" = 6
+"neuron" = 2407823
+"leukocyte" = 836
+"central nervous system macrophage" = 28172
+"oligodendrocyte precursor cell" = 51931
+"astrocyte" = 83235

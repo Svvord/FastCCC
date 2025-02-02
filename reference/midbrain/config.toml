@@ -1,0 +1,18 @@
+reference_name = "midbrain"
+min_percentile = 0.1
+LRI_database = "CPDBv5.0.0"
+
+[celltype]
+"oligodendrocyte" = 160754
+"ependymal cell" = 552
+"endothelial cell" = 570
+"vascular associated smooth muscle cell" = 216
+"pericyte" = 512
+"fibroblast" = 1420
+"Bergmann glial cell" = 58
+"choroid plexus epithelial cell" = 6
+"neuron" = 254666
+"leukocyte" = 1032
+"central nervous system macrophage" = 28480
+"oligodendrocyte precursor cell" = 23788
+"astrocyte" = 26556

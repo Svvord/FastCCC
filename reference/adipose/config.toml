@@ -1,0 +1,26 @@
+reference_name = "adipose"
+min_percentile = 0.1
+LRI_database = "CPDBv5.0.0"
+
+[celltype]
+"pericyte" = 1464
+"endothelial cell" = 22979
+"endothelial cell of lymphatic vessel" = 2901
+"smooth muscle cell" = 2918
+"macrophage" = 23926
+"monocyte" = 1949
+"T cell" = 10624
+"dendritic cell" = 2441
+"B cell" = 475
+"mast cell" = 1176
+"immature NK T cell" = 2629
+"neutrophil" = 1026
+"mesothelial cell" = 30482
+"adipocyte" = 25871
+"preadipocyte" = 52482
+"fibroblast" = 16918
+"mature NK T cell" = 1144
+"myofibroblast cell" = 1964
+"leukocyte" = 320
+"plasma cell" = 52
+"mesenchymal stem cell" = 2622
