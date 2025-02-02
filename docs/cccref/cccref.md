@@ -2,6 +2,8 @@
 title: Human CCC reference
 layout: default
 nav_order: 4
+has_children: true
+permalink: cccref
 ---
 
 <script type="text/javascript" async
@@ -12,24 +14,44 @@ nav_order: 4
 
 ## Download our constructed human CCC reference panel
 
+In the latest version, we leverage FastCCC’s speed to shift part of the reference computation to the first-time usage process. This adds only 1–2 minutes during the initial use of the panel but significantly reduces the storage size of the uploaded reference data. The panel size for each tissue has been reduced from 3GB to just 5MB, retaining only essential information such as gene expression distributions. The human CCC reference panel is now available on [GitHub] and can be downloaded [here](https://github.com/Svvord/FastCCC/tree/main/reference).
+
+You can also download our reference panel using the following commands:
+```bash
+git clone https://github.com/Svvord/FastCCC.git
+cp -r ./FastCCC/reference your/save/path/
+```
+
+Currently, we have utilized 16 million cells from 19 different general tissues or tissue locations available on the [CellxGene] platform. The technical platforms, cell counts, and the number of cell types included are shown in the figure below. We plan to generate and upload more reference datasets in the future, allowing users to directly access them without the need to download and process large-scale data, thereby reducing resource consumption.
+
+<p align="center">
+  <img src="{{ site.baseurl }}/images/reference.svg" width="700">
+</p>
+
+
+
 {: .important-title }
 > Coming soon
 >
-> We are currently preparing to upload the fully constructed CCC reference panel, which will be made publicly available soon.
+> We have uploaded the first version of our constructed human reference panel, based on the CPDBv5.0 LRI database. We are exploring a better approach that will allow users to customize and use any LRI database without needing to create a corresponding reference panel. This feature is coming soon.
 
 {: .highlight-title }
 > Tips
 >
-> We are currently preparing to upload the fully constructed CCC reference panel, which will be made publicly available soon.
-In the meantime, if you would like to experiment with our reference panel or you want to construct your own reference panels, you can follow our tutorials on [downloading reference datasets]({{ site.baseurl }}/cccref.html#download-large-scale-normal-reference-dataset-from-cellxgene) from CellxGene and [constructing a reference panel from scratch]({{ site.baseurl }}/cccref.html#how-to-build-a-human-ccc-reference-panel-from-scratch-using-fastccc). By following these steps, you can recreate the same reference panel and achieve identical results.
+> If you would like to reproduce our database results or construct your own reference panels, you can follow our tutorials on [downloading reference datasets]({{ site.baseurl }}/cccref.html#download-large-scale-normal-reference-dataset-from-cellxgene) from CellxGene and [constructing a reference panel from scratch]({{ site.baseurl }}/cccref.html#how-to-build-a-human-ccc-reference-panel-from-scratch-using-fastccc). By following these steps, you can recreate the same reference panel and achieve identical results.
+
+
+
 
 ## How to perform reference-based CCC analysis on a user-collected query dataset
+
+The process of performing comparative analysis using FastCCC is straightforward. When comparing a query dataset with the reference, users must use the same LRI database that was used to construct the reference (we are currently developing a new approach that will allow users to specify their own LRI database in the next version). Additionally, users should select the appropriate reference tissue based on the tissue origin of the query dataset, specify the path to the query file, and define the location for saving the results.
 
 ```python
 import fastccc.infer_query
 ## Modify the file path according to the location where you run the code.
 database_file_path = 'FastCCC/db/CPDBv5.0.0/' 
-reference_path = 'your/save/path/reference/lung/'
+reference_path = 'FastCCC/reference/lung/' # Take "lung" reference panel as an example.
 tissue_query_file = 'your/save/path/user_collected_query.h5ad'
 save_path = 'your/save/path/user_collected_query/'
 
@@ -39,7 +61,7 @@ fastccc.infer_query.infer_query_workflow(
     query_counts_file_path = tissue_query_file,
     celltype_file_path = None,
     save_path = save_path,
-    meta_key = 'cell_type'
+    meta_key = 'cell_type' # Use meta_key or celltype_file_path based on your query data.
 )
 ```
 <blockquote class="new-title"> <p>output</p>
@@ -63,6 +85,9 @@ fastccc.infer_query.infer_query_workflow(
 </blockquote>
 
 ## Download large-scale normal reference dataset from CellxGene
+
+If you want to reproduce our results, you can use the following code as an example to download the raw reference count matrix, which we use to construct the human CCC reference panel. For detailed instructions on using the CellxGene-Census API, see [here](https://chanzuckerberg.github.io/cellxgene-census/).
+
 ```python
 import cellxgene_census
 census = cellxgene_census.open_soma()
@@ -156,12 +181,13 @@ The `build_reference_workflow` function constructs a reference panel for cell-ce
 It processes reference count data, quantifies and ranks it, and prepares the necessary inputs for downstream CCC analysis.
 Additionally, the function saves the processed reference configuration and relevant files for future use.
 
-#### Key Features
-- **Reads and preprocesses reference raw count data** from an `.h5ad` file.
-- **Filters cells** to remove those with too few expressed genes.
-- **Handles metadata assignment** using a specified `meta_key` or an external file with `celltype_file_path`.
-- **Extracts interaction information** from a given ligand-receptor interaction (LRI) database.
-- **Configures and stores reference settings** for later analyses.
+{: .note }
+>
+- Reads and preprocesses reference **raw count** data from an `.h5ad` file.
+- Uses **HGNC symbols** as gene names (i.e., `anndata.var_names` are official gene symbols).
+- Count data in **CSR sparse format** (i.e. `type(anndata.X) == scipy.sparse.csr_matrix`).
+- Extracts interaction information from a given ligand-receptor interaction (LRI) database.
+- Configures and stores reference settings for later analyses.
 
 #### Function Signature
 ```python
@@ -204,6 +230,13 @@ The `infer_query_workflow` function performs query inference using a pre-built c
 It processes query count data, applies quality control, aligns metadata, and compares the query dataset with the reference to infer cell interactions.  
 This function enables researchers to analyze new datasets in the context of a predefined reference.
 
+{: .note }
+>
+- Reads and preprocesses query **raw count** data from an `.h5ad` file.
+- Uses **HGNC symbols** as gene names (i.e., `anndata.var_names` are official gene symbols).
+- Count data in **CSR sparse format** (i.e. `type(anndata.X) == scipy.sparse.csr_matrix`).
+- The LRI database must be the same as the one used in the reference panel. (We will introduce a new feature to remove this restriction.)
+
 #### Function Signature
 ```python
 def infer_query_workflow(
@@ -227,7 +260,7 @@ def infer_query_workflow(
 | `query_counts_file_path` | `str`      | None          | Path to the user-provided query ***raw count matrix*** file in h5ad format. |
 | `celltype_file_path`   | `str`        | None          | Path to the cell type annotation file for query count file. If the h5ad count file already contains cell type labels, this can be set to `None`, and the `meta_key` parameter should be specified instead. |
 | `save_path`           | `str`        | None          | Path where the inference results will be saved. |
-| `celltype_mapping_dict` | `dict` or `None` | `None`     | Dictionary for mapping reference cell types to query cell types. For example, this can be used to merge more granular cell subtype categories in the reference into broader categories, ensuring consistency with the cell type annotations in the query dataset. If `None`, the cell type annotations stored in the reference will be used directly. |
+| `celltype_mapping_dict` | `dict` or `None` | `None`     | Dictionary for mapping reference cell types to query cell types. For example, this can be used to merge more granular cell subtype categories in the reference into broader categories, ensuring consistency with the cell type annotations in the query dataset. If `None`, the cell type annotations stored in the reference will be used directly. See [examples]({{site.baseurl}}/cccref/snippet.html#example2-how-to-adjust-the-granularity-of-cell-type-annotations-in-reference-panel) for details. |
 | `meta_key`            | `str` or None | `None`       | Metadata key specifying the column in `adata.obs` that contains the cell type labels. |
 
 #### Returns
@@ -247,4 +280,5 @@ This function does not return values directly but generates and saves multiple o
 - Last Updated: 2025-02-01
 
 [CellxGene]: https://cellxgene.cziscience.com/
+[GitHub]: https://github.com/Svvord/FastCCC
 

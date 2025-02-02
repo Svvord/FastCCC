@@ -14,10 +14,11 @@ nav_order: 1
 
 
 ## Welcome to the FastCCC website!
-This website maintains FastCCC tutorial and code for reproducing simulation and real data application results described in the upcoming paper. 
+This website maintains FastCCC tutorial and code for reproducing simulation and real data application results described in the [upcoming paper](https://www.biorxiv.org/content/10.1101/2025.01.27.635115v1). 
 
 [Get started now]({{ site.baseurl }}/install.html){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View it on GitHub][FastCCC]{: .btn .fs-5 .mb-4 .mb-md-0 }
+[View it on GitHub][FastCCC]{: .btn .btn-blue .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View it on BioRxiv][BioRxiv]{: .btn .btn-green .fs-5 .mb-4 .mb-md-0 }
 
 {: .note }
 > Please note that we are currently in the submission stage, and the code is still under development and not yet fully packaged. In the future, to enhance user convenience, many functionalities may be restructured with new function names and improvements. If you find that the previous code is no longer applicable, please update it promptly and refer to our latest tutorial. We will finalize a user-friendly version as soon as possible.
@@ -53,3 +54,4 @@ tools on analyzing genetics, genomics and transcriptomics data.
 
 [FastCCC]: https://github.com/Svvord/FastCCC
 [repository]: https://github.com/Svvord/FastCCC
+[BioRxiv]: https://www.biorxiv.org/content/10.1101/2025.01.27.635115v1
