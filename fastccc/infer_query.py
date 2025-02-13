@@ -707,7 +707,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
         labels_df.columns = ['cell_type']
         labels_df.index.name = 'barcode_sample'
     else:
-        labels_df = pd.read_csv(meta_file_path, sep='\t', index_col=0)
+        labels_df = pd.read_csv(celltype_file_path, sep='\t', index_col=0)
         for barcode in query.obs_names:
             assert barcode in labels_df.index, "The index of query data doesn't match the index of labels"
         labels_df = labels_df.loc[query.obs_names, :]
