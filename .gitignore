@@ -168,3 +168,5 @@ fastccc/infer_query_backup*
 poetry_install.md
 
 results
+
+.DS_Store

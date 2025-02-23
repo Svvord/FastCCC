@@ -115,10 +115,10 @@ fastccc.Cauchy_combination_of_statistical_analysis_methods(
 
 ### `statistical_analysis_method`
 
-#### Description
+#### **Description**
 The `fastccc.core.statistical_analysis_method` function performs statistical analysis on cell-cell communication, supporting various distribution calculation methods. It offers options for filtering candidate LRIs and constructing communication scores, allowing users to customize analysis parameters and optionally save the results.
 
-#### Function Signature
+#### **Function Signature**
 ```python
 def statistical_analysis_method(
     database_file_path,
@@ -137,7 +137,7 @@ def statistical_analysis_method(
     save_path = None
 )
 ```
-#### Parameters
+#### **Parameters**
 
 | Parameter               | Type            | Default Value       | Description  |
 |-------------------------|-----------------|--------------------|--------------|
@@ -156,7 +156,7 @@ def statistical_analysis_method(
 | `save_path`              | `str` or `None`  | `None`              | Path to save the analysis results; if `None`, results are saved to the default path. |
 
 
-#### Returns
+#### **Returns**
 
 | Return Value            | Type                | Description  |
 |-------------------------|---------------------|--------------|
@@ -170,7 +170,7 @@ All these results will be also saved to the `save_path` folder.
 
 ### `Cauchy_combination_of_statistical_analysis_methods`
 
-#### Function Signature
+#### **Function Signature**
 ```python
 def Cauchy_combination_of_statistical_analysis_methods(
     database_file_path,
@@ -189,11 +189,11 @@ def Cauchy_combination_of_statistical_analysis_methods(
 )
 ```
 
-#### Description
+#### **Description**
 
 The `fastccc.core.Cauchy_combination_of_statistical_analysis_methods` function performs an advanced statistical analysis by combining multiple single-unit summary, complex aggregation, and ligand-receptor integration methods. It processes biological data to assess CCC using different statistical approaches and combines the results using the Cauchy combination method. The function offers flexibility by allowing users to specify various distribution methods and filtering options, making it suitable for comprehensive CCC analysis in scRNA-seq datasets.
 
-#### Parameters
+#### **Parameters**
 
 | Parameter                    | Type          | Default Value                                     | Description  |
 |------------------------------|---------------|--------------------------------------------------|--------------|
@@ -212,7 +212,7 @@ The `fastccc.core.Cauchy_combination_of_statistical_analysis_methods` function p
 | `use_DEG`                     | `bool`        | `False`                                          | Whether to use differentially expressed genes (DEGs) in the analysis. |
 
 
-#### Returns
+#### **Returns**
 
 No variables will be returned directly. Instead, all scoring-specific results, along with the final combined results, will be saved to the user-specified folder.
 
