@@ -175,7 +175,7 @@ fastccc.build_reference.build_reference_workflow(
 
 ### `build_reference_workflow`
 
-#### Description
+#### **Description**
 
 The `build_reference_workflow` function constructs a reference panel for cell-cell communication analysis.
 It processes reference count data, quantifies and ranks it, and prepares the necessary inputs for downstream CCC analysis.
@@ -189,7 +189,7 @@ Additionally, the function saves the processed reference configuration and relev
 - Extracts interaction information from a given ligand-receptor interaction (LRI) database.
 - Configures and stores reference settings for later analyses.
 
-#### Function Signature
+#### **Function Signature**
 ```python
 def build_reference_workflow(
     database_file_path, 
@@ -202,7 +202,7 @@ def build_reference_workflow(
 )
 ```
 
-#### Parameters
+#### **Parameters**
 
 | Parameter                  | Type          | Default Value | Description  |
 |----------------------------|--------------|---------------|--------------|
@@ -217,14 +217,14 @@ def build_reference_workflow(
 
 
 
-#### Returns
+#### **Returns**
 This function does not return values directly but generates and saves multiple output files in the specified `save_path`. Users can ignore these details—once the reference panel is built, it can be easily utilized through `infer_query_workflow`.
 
 ---
 
 ### `infer_query_workflow`
 
-### Description
+#### **Description**
 
 The `infer_query_workflow` function performs query inference using a pre-built cell-cell communication reference.  
 It processes query count data, applies quality control, aligns metadata, and compares the query dataset with the reference to infer cell interactions.  
@@ -237,7 +237,7 @@ This function enables researchers to analyze new datasets in the context of a pr
 - Count data in **CSR sparse format** (i.e. `type(anndata.X) == scipy.sparse.csr_matrix`).
 - The LRI database must be the same as the one used in the reference panel. (We will introduce a new feature to remove this restriction.)
 
-#### Function Signature
+#### **Function Signature**
 ```python
 def infer_query_workflow(
     database_file_path, 
@@ -251,7 +251,7 @@ def infer_query_workflow(
 ```
 
 
-#### Parameters
+#### **Parameters**
 
 | Parameter              | Type          | Default Value | Description  |
 |------------------------|--------------|---------------|--------------|
@@ -263,7 +263,7 @@ def infer_query_workflow(
 | `celltype_mapping_dict` | `dict` or `None` | `None`     | Dictionary for mapping reference cell types to query cell types. For example, this can be used to merge more granular cell subtype categories in the reference into broader categories, ensuring consistency with the cell type annotations in the query dataset. If `None`, the cell type annotations stored in the reference will be used directly. See [examples]({{site.baseurl}}/cccref/snippet.html#example2-how-to-adjust-the-granularity-of-cell-type-annotations-in-reference-panel) for details. |
 | `meta_key`            | `str` or None | `None`       | Metadata key specifying the column in `adata.obs` that contains the cell type labels. |
 
-#### Returns
+#### **Returns**
 This function does not return values directly but generates and saves multiple output files in the specified `save_path`. These include:
 
 1. `query_infer_results.txt`, results comparing query interactions against the reference dataset. This is a dataframe file with tab-separated values.

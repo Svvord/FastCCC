@@ -19,7 +19,7 @@ This section provides multiple templates, starting from the folder and data stor
 
 Here, we downloaded a liver disease scRNA-seq dataset from [CellxGene](https://cellxgene.cziscience.com/e/02792605-4760-4023-82ad-40fc4458a5db.cxg/) as an example.
 
-#### Dataset
+#### **Dataset**
 
 ##### Download
 ```bash
@@ -43,7 +43,7 @@ disease_liver_adata.write_h5ad('../data/clean/liver_query_disease_exp1.h5ad')
 
 
 
-#### Directory Structure
+#### **Directory Structure**
 ```
 ┌─ ...
 ├─ (your files)
@@ -69,7 +69,7 @@ disease_liver_adata.write_h5ad('../data/clean/liver_query_disease_exp1.h5ad')
 └─ ...
 ```
 
-#### templates
+#### **templates**
 ```python
 # copy following templates to code_snippets.py
 import fastccc
@@ -119,7 +119,7 @@ We use a TOML file to record the cell types and their counts in each tissue pane
 
 In this example, we use breast tissue data to demonstrate how to adjust cell type labels within the reference dataset.
 
-#### templates
+#### **templates**
 ```python
 import fastccc
 

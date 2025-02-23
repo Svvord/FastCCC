@@ -45,7 +45,7 @@ The file should be structured as follows:
   <img src="{{ site.baseurl }}/images/basic_usage_inputs2.png" width="700">
 </p>
 
-The second option is to use the cell type annotations stored in the `.h5ad` file’s `obs` field (if available). For example, as shown in the figure below, the `'cell_label'` column contains the cell type information. 
+The second option is to use the cell type annotations stored in the `.h5ad` file’s `obs` field (if available). For example, as shown in the figure below, the `'cell_labels'` column contains the cell type information. 
 
 <p align="center">
   <img src="{{ site.baseurl }}/images/basic_usage_inputs3.png" width="700">
@@ -53,7 +53,7 @@ The second option is to use the cell type annotations stored in the `.h5ad` file
 
 In this case, there is no need to provide a separate TSV file. Instead, simply set 
 ```python
-meta_key = 'cell_label'
+meta_key = 'cell_labels'
 ```
 
 ## 3. Ligand-receptor interaction database
