@@ -2,7 +2,7 @@
 title: Code snippets
 layout: default
 parent: Basic usage
-nav_order: 3
+nav_order: 4
 ---
 <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js">

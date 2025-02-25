@@ -542,28 +542,28 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         results_df = pd.DataFrame(
             results, 
             columns=[
-                'sender|receiver', 'is_in_ref', 'LRI_id', 
-                'ligand', 'receptor', 'IS_score', 'null_IS',
-                'Sig_thres_interval_by_ref', 'L_null_ref', 'R_null_ref',
-                '>min_percentile', 'L_perc', 'R_perc',
-                '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
-                'IS_L_part','IS_L_interval_by_ref',
-                'IS_R_part', 'IS_R_interval_by_ref',
-                'is_sig', 'is_sig_ref', 'comparison'
+                'sender|receiver', 'in_reference', 'LRI_ID', 
+                'ligand', 'receptor', 'comm_score', 'null_comm_score',
+                'sig_threshold_CI', 'ligand_null_ref', 'receptor_null_ref',
+                'above_expr_threshold', 'ligand_expr_percent', 'receptor_expr_percent',
+                'above_expr_threshold_ref', 'ligand_expr_percent_ref', 'receptor_expr_percent_ref',
+                'ligand_CS_component', 'ligand_CS_CI',
+                'receptor_CS_component', 'receptor_CS_CI',
+                'is_significant', 'is_significant_ref', 'trend_vs_ref'
             ]
         )
     else:
         results_df = pd.DataFrame(
             results, 
             columns=[
-                'sender|receiver', 'is_in_ref', 'LRI_id', 
-                'ligand', 'receptor', 'IS_score', 'null_IS',
-                'Sig_thres_interval_by_ref',
-                '>min_percentile', 'L_perc', 'R_perc',
-                '>min_percentile_ref', 'L_perc_ref', 'R_perc_ref',
-                'IS_L_part','IS_L_interval_by_ref',
-                'IS_R_part', 'IS_R_interval_by_ref',
-                'is_sig', 'is_sig_ref', 'comparison'
+                'sender|receiver', 'in_reference', 'LRI_ID', 
+                'ligand', 'receptor', 'comm_score', 'null_comm_score',
+                'sig_threshold_CI',
+                'above_expr_threshold', 'ligand_expr_percent', 'receptor_expr_percent',
+                'above_expr_threshold_ref', 'ligand_expr_percent_ref', 'receptor_expr_percent_ref',
+                'ligand_CS_component', 'ligand_CS_CI',
+                'receptor_CS_component', 'receptor_CS_CI',
+                'is_significant', 'is_significant_ref', 'trend_vs_ref'
             ]
         )
 
@@ -597,9 +597,9 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
 
     ####### save reference results #######
     logger.info("Saving inference results.")
-    percents_analysis.to_csv(f'{save_path}/query_percents_analysis.txt', sep='\t')
-    interactions_strength.to_csv(f'{save_path}/query_interactions_strength.txt', sep='\t')
-    results_df.to_csv(f'{save_path}/query_infer_results.txt', sep='\t')
+    percents_analysis.to_csv(f'{save_path}/query_percents_analysis.tsv', sep='\t')
+    interactions_strength.to_csv(f'{save_path}/query_interactions_strength.tsv', sep='\t')
+    results_df.to_csv(f'{save_path}/query_infer_results.tsv', sep='\t', index=False)
 
 
 def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):

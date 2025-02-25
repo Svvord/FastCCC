@@ -2,7 +2,7 @@
 title: Inputs
 layout: default
 parent: Basic usage
-nav_order: 1
+nav_order: 2
 ---
 <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js">
@@ -29,7 +29,7 @@ Please avoid using HVG (highly variable genes) unless you specifically want to f
 The internal matrix structure of the scRNA-seq data appears as follows:
 
 <p align="center">
-  <img src="{{ site.baseurl }}/images/basic_usage_inputs1.png" width="700">
+  <img src="{{site.baseurl}}/images/basic_usage_inputs1.png" width="700">
 </p>
 
 ## 2. Cell type annotations
@@ -42,13 +42,13 @@ For ease of use, cell type annotations can be provided in two formats. The first
 The file should be structured as follows:
 
 <p align="center">
-  <img src="{{ site.baseurl }}/images/basic_usage_inputs2.png" width="700">
+  <img src="{{site.baseurl}}/images/basic_usage_inputs2.png" width="700">
 </p>
 
 The second option is to use the cell type annotations stored in the `.h5ad` file’s `obs` field (if available). For example, as shown in the figure below, the `'cell_labels'` column contains the cell type information. 
 
 <p align="center">
-  <img src="{{ site.baseurl }}/images/basic_usage_inputs3.png" width="700">
+  <img src="{{site.baseurl}}/images/basic_usage_inputs3.png" width="700">
 </p>
 
 In this case, there is no need to provide a separate TSV file. Instead, simply set 
@@ -73,12 +73,12 @@ This parameter specifies whether the gene IDs used in your data are **HGNC** sym
 
 For example, the `'hgnc_symbol'` looks like this:
 <p align="center">
-  <img src="{{ site.baseurl }}/images/basic_usage_inputs4.png" width="700">
+  <img src="{{site.baseurl}}/images/basic_usage_inputs4.png" width="700">
 </p>
 
 The `'ensembl'` looks like this:
 <p align="center">
-  <img src="{{ site.baseurl }}/images/basic_usage_inputs5.png" width="700">
+  <img src="{{site.baseurl}}/images/basic_usage_inputs5.png" width="700">
 </p>
 
 For additional parameters, refer to the [Function] section. 
@@ -86,6 +86,6 @@ For additional parameters, refer to the [Function] section.
 
 [Scanpy]: https://scanpy.readthedocs.io/en/stable/
 [GitHub]: https://github.com/Svvord/FastCCC/tree/main/db
-[Function]: {{site.baseurl}}/usage/#functions
+[Function]: {{site.baseurl}}/usage/func.html#functions
 [Basic Usage]: {{site.baseurl}}/usage/#basic-usages-with-a-single-cs-statistic
 [Code Snippets]: {{site.baseurl}}/usage/snippet.html

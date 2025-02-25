@@ -2,7 +2,7 @@
 title: Inputs
 layout: default
 parent: Human CCC reference
-nav_order: 1
+nav_order: 2
 ---
 <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js">
