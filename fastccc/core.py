@@ -4,7 +4,7 @@ from .distrib import Distribution, get_pvalue_from_pmf
 from collections import Counter
 import itertools
 import timeit
-from .ccc_utils import get_current_memory
+from .ccc_utils import get_current_memory, create_significant_interactions_df
 from . import preprocess
 from . import score
 from . import dist_iid_set
@@ -29,6 +29,14 @@ def mkdir(directory_path):
     else:
         logger.info(f"Directory already exists: {directory_path}")
 
+
+def __save(dataframe, save_path, task_id, timestamp, method_key, suffix, index=True):
+    if method_key == '':
+        save_file = os.path.join(save_path, f"{task_id}_{suffix}.tsv")
+    else:
+        save_file = os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_{suffix}.tsv")
+    dataframe.to_csv(save_file, sep='\t', index=index)
+
 def __save_file(
     interactions_strength, 
     pvals, 
@@ -42,12 +50,9 @@ def __save_file(
     if timestamp is None:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
-    interactions_strength.to_csv(
-        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_interactions_strength.csv"))
-    pvals.to_csv(
-        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_pvals.csv"))
-    percents_analysis.to_csv(
-        os.path.join(save_path, f"{task_id}_{timestamp}_{method_key}_percents_analysis.csv"))
+    __save(interactions_strength, save_path, task_id, timestamp, method_key, 'interactions_strength')
+    __save(pvals, save_path, task_id, timestamp, method_key, 'pvals')
+    __save(percents_analysis, save_path, task_id, timestamp, method_key, 'percents_analysis')
 
 
 def Cauchy_combination_of_statistical_analysis_methods(
@@ -166,6 +171,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
     cauthy_combine(save_path, task_id=task_id)
     logger.success("Cauthy combination done.") 
 
+    pvals = pd.read_csv(os.path.join(save_path, f'{task_id}_Cauchy_pvals.tsv'), index_col=0, sep='\t')
     if use_DEG:
         mean_counts = score.calculate_cluster_mean(counts_df, labels_df)
         complex_func = score.calculate_complex_min_func
@@ -173,22 +179,32 @@ def Cauchy_combination_of_statistical_analysis_methods(
         mean_pmfs = dist_iid_set.calculate_cluster_mean_distribution(counts_df, labels_df)
         complex_func = dist_complex.get_minimum_distribution
         mean_pmfs = dist_complex.combine_complex_distribution_df(mean_pmfs, complex_table, complex_func)
-        pvals = pd.read_csv(os.path.join(save_path, f'{task_id}_Cauchypvals.csv'), index_col=0)
         pvals = check_key_interactions_pvalue_by_DEG(mean_counts, mean_pmfs, interactions, pvals)
-        pvals.to_csv(os.path.join(save_path, f'{task_id}_Cauchy_with_DEG_pvals.csv'))
+        pvals.to_csv(os.path.join(save_path, f'{task_id}_Cauchy_with_DEG_pvals.tsv'), sep='\t')
         logger.success("DEGs selection done.")
+    
+    significant_results = create_significant_interactions_df(pvals, database_file_path)
+    __save(
+        significant_results, 
+        save_path = save_path,
+        task_id = task_id, 
+        method_key = '', 
+        timestamp = '',
+        suffix = 'significant_results',
+        index = False
+    )
 
-    file_list = glob.glob(f'{save_path}/{task_id}*interactions_strength.csv')
+    file_list = glob.glob(f'{save_path}/{task_id}*interactions_strength.tsv')
     logger.info(f"Integrating {len(file_list)} interactions_strength files.")
     average_strength_df = None
     for item in file_list:
-        strength_df = pd.read_csv(item, index_col=0)
+        strength_df = pd.read_csv(item, index_col=0, sep='\t')
         if average_strength_df is None:
             average_strength_df = strength_df.copy()
         else:
             average_strength_df += strength_df.copy()
     average_strength_df = average_strength_df / len(file_list)
-    average_strength_df.to_csv(os.path.join(save_path, f'{task_id}_average_interactions_strength.csv'))
+    average_strength_df.to_csv(os.path.join(save_path, f'{task_id}_average_interactions_strength.tsv'), sep='\t')
     logger.success("Average CS across all scoring methods calculation done.")
 
 
@@ -311,8 +327,19 @@ def statistical_analysis_method(
 
     if use_DEG:
         pvals = check_key_interactions_pvalue_by_DEG(mean_counts, mean_pmfs, interactions, pvals)
-        pvals.to_csv(os.path.join(save_path, f'{task_id}_DEG_pvals.csv'))
+        pvals.to_csv(os.path.join(save_path, f'{task_id}_DEG_pvals.tsv'), sep='\t')
         logger.success("DEGs selection done.")
+
+    significant_results = create_significant_interactions_df(pvals, database_file_path)
+    __save(
+        significant_results, 
+        save_path = save_path,
+        task_id = task_id, 
+        method_key = '', 
+        timestamp = '',
+        suffix = 'significant_results',
+        index = False
+    )
 
     return interactions_strength, pvals, percents_analysis
 

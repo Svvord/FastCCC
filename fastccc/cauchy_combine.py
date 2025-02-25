@@ -10,10 +10,10 @@ from loguru import logger
 def cauthy_combine(fastCCC_dir, task_id=None):
     if task_id is None:
         logger.warning("No task_id is provided, all pvals files will be combined.")
-        pval_paths = glob.glob(fastCCC_dir+os.sep+'*pvals.csv')
+        pval_paths = glob.glob(fastCCC_dir+os.sep+'*pvals.tsv')
     else:
         logger.info(f"Task ID for combining is :{task_id}")
-        pval_paths = glob.glob(fastCCC_dir+os.sep+f'{task_id}*pvals.csv')
+        pval_paths = glob.glob(fastCCC_dir+os.sep+f'{task_id}*pvals.tsv')
     logger.info(f"There are {len(pval_paths)} pval files.")
     joined_path = '\n'.join(pval_paths)
     logger.debug(f"\n{joined_path}")
@@ -22,8 +22,8 @@ def cauthy_combine(fastCCC_dir, task_id=None):
     comb_dict = dict()
     for pval_path in pval_paths:
         comb = os.path.basename(pval_path)
-        comb = comb.replace('pvals.csv', '')
-        pval_df = pd.read_csv(pval_path, header=0, index_col=0)
+        comb = comb.replace('pvals.tsv', '')
+        pval_df = pd.read_csv(pval_path, header=0, index_col=0, sep='\t')
         if ct_pairs is None:
             ct_pairs = pval_df.index.tolist()
         if cpis is None:
@@ -45,11 +45,11 @@ def cauthy_combine(fastCCC_dir, task_id=None):
     P_df = pd.DataFrame(P, index=ct_pairs, columns=cpis)
 
     if task_id is None:
-        T_df.to_csv(fastCCC_dir+os.sep+'Cauchystats.csv')
-        P_df.to_csv(fastCCC_dir+os.sep+'Cauchypvals.csv')
+        T_df.to_csv(fastCCC_dir+os.sep+'Cauchy_stats.tsv', sep='\t')
+        P_df.to_csv(fastCCC_dir+os.sep+'Cauchy_pvals.tsv', sep='\t')
     else:
-        T_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchystats.csv')
-        P_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchypvals.csv')
+        T_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchy_stats.tsv', sep='\t')
+        P_df.to_csv(fastCCC_dir+os.sep+f'{task_id}_Cauchy_pvals.tsv', sep='\t')
 
 # if __name__ == "__main__":
 #     cauthy_combine(fastCCC_dir)
