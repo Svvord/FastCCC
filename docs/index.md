@@ -29,7 +29,7 @@ FastCCC is a highly scalable, permutation-free statistical toolkit tailored to i
 ## FastCCC overview
 
 <p align="center">
-  <img src="{{ site.baseurl }}/images/overview.v2.0.jpg" width="700">
+  <img src="{{ site.baseurl }}/images/figure1.png" width="700">
 </p>
 
 FastCCC introduces unique features in CCC analyses. 
