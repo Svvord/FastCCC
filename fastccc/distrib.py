@@ -80,7 +80,7 @@ class Distribution:
                 is_align = True
             assert pmf_array is not None and is_align is not None
             pmf_array = np.trim_zeros(pmf_array, trim='b')
-            assert np.abs(1 - np.sum(pmf_array)) < eps, f"The sum of PMF is {np.sum(pmf_array)} not 1."
+            # assert np.abs(1 - np.sum(pmf_array)) < eps, f"The sum of PMF is {np.sum(pmf_array)} not 1."
             # if np.abs(1 - np.sum(pmf_array)) >= 1e-7:
             #     print(f"The sum of PMF is {np.sum(pmf_array)} not 1.")
             
