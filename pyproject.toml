@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "fastccc"
-version = "0.1.0"
-description = ""
+version = "0.1.1"
+description = "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies."
 authors = ["Svvord <cchousiyu@163.com>"]
 readme = "README.md"
 

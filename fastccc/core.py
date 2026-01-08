@@ -463,7 +463,7 @@ def calculate_cluster_mean(counts_df, labels_df, complex_table):
     
     if not complex_table.empty:
         complex_counts = complex_table.groupby('complex_multidata_id').apply(
-            lambda x: x['protein_multidata_id'].values).apply(
+            lambda x: x['protein_multidata_id'].values, include_groups=False).apply(
             lambda x:create_complex_count_func(x)).T
 
         # 合成 最终 mean_counts dataframe
@@ -536,7 +536,8 @@ def calculate_cluster_quantile(counts_df, labels_df, complex_table, qt=0.9):
 
     counts_df_with_labels = counts_df.merge(labels_df, left_index=True, right_index=True)
     # mean_counts = counts_df_with_labels.groupby('cell_type').quantile(qt)
-    mean_counts = counts_df_with_labels.groupby('cell_type').apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns))
+    mean_counts = counts_df_with_labels.groupby('cell_type').apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns), include_groups=False)
+
 
     # complex count dataframe 
     def create_complex_count_func(x):
@@ -547,7 +548,7 @@ def calculate_cluster_quantile(counts_df, labels_df, complex_table, qt=0.9):
     
     if not complex_table.empty:
         complex_counts = complex_table.groupby('complex_multidata_id').apply(
-            lambda x: x['protein_multidata_id'].values).apply(
+            lambda x: x['protein_multidata_id'].values, include_groups=False).apply(
             lambda x:create_complex_count_func(x)).T
 
         # 合成 最终 mean_counts dataframe
@@ -632,7 +633,7 @@ def calculate_cluster_percents(counts_df, labels_df, complex_table):
         return mean_counts.loc[:,x].T.min()
     if not complex_table.empty:
         complex_counts = complex_table.groupby('complex_multidata_id').apply(
-            lambda x: x['protein_multidata_id'].values).apply(
+            lambda x: x['protein_multidata_id'].values, include_groups=False).apply(
             lambda x:create_complex_count_func(x)).T
 
         # 合成 最终 mean_counts dataframe

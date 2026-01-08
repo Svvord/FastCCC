@@ -15,7 +15,7 @@ def combine_complex_distribution_df(set_distribution_df, complex_table, complex_
         return set_distribution_df.loc[:,x].apply(sub_func, axis=1)
 
     if not complex_table.empty:
-        complex_pmf = complex_table.groupby('complex_multidata_id').apply(lambda x: x['protein_multidata_id'].values).apply(lambda x:func(x)).T
+        complex_pmf = complex_table.groupby('complex_multidata_id').apply(lambda x: x['protein_multidata_id'].values, include_groups=False).apply(lambda x:func(x)).T
         complex_pmf = complex_pmf.dropna(axis=1)
         set_distribution_df = pd.concat((set_distribution_df, complex_pmf), axis=1)
         
@@ -26,7 +26,7 @@ def get_minimum_distribution(*pmf_list):
     '''
     distribution_list = k distribution 
     F = k * len(distribuion) matrix (pmf -> cdf use np.cumsum)
-    minimum F(x) = 1 - \product (1 - F_i(x))
+    minimum F(x) = 1 - \\product (1 - F_i(x))
     so f(x) = np.diff(F(x))
     '''
     for pmf in pmf_list:
@@ -71,18 +71,13 @@ def get_minimum_distribution(*pmf_list):
     F = np.vstack(padded_arrays)
     # F = np.stack(distribution_list)
     F = np.cumsum(F, axis=1)
-    minF = 1 - np.product(1-F, axis=0)
+    minF = 1 - np.prod(1-F, axis=0)
     f = np.diff(minF, prepend=0)
     return Distribution(dtype='other', pmf_array=f, is_align=True)
 
 
 def get_average_distribution(*distribution_list):
-    '''
-    distribution_list = k distribution 
-    F = k * len(distribuion) matrix (pmf -> cdf use np.cumsum)
-    minimum F(x) = 1 - \product (1 - F_i(x))
-    so f(x) = np.diff(F(x))
-    '''
+
     assert len(distribution_list) > 0, "Distribution list is empty."
     for distribution in distribution_list:
         assert distribution.is_align, "PMF is not aligned"

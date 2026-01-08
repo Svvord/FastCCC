@@ -54,7 +54,7 @@ def get_norm_minimum_cdf_func(locs, scales):
         F = []
         for loc, scale in zip(locs, scales):
             F.append(norm.cdf(x, loc, scale))
-        minF = 1 - np.product(1-np.array(F), axis=0)
+        minF = 1 - np.prod(1-np.array(F), axis=0)
         return minF
     return analytic_func
 

@@ -21,7 +21,7 @@ def create_significant_interactions_df(
     complex_composition = pd.read_csv(os.path.join(LRI_db_path, 'complex_composition_table.csv'))
     complex_table = pd.read_csv(os.path.join(LRI_db_path, 'complex_table.csv'))
     complex_table = complex_table.merge(complex_composition, left_on='complex_multidata_id', right_on='complex_multidata_id')
-    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values)).to_dict()
+    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values), include_groups=False).to_dict()
     for key in foo_dict:
         value = ','.join([id2symbol_dict[item] for item in foo_dict[key]])
         id2symbol_dict[key] = value

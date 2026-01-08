@@ -30,7 +30,7 @@ def get_norm_minimum_cdf_func(locs, scales):
         F = []
         for loc, scale in zip(locs, scales):
             F.append(norm.cdf(x, loc, scale))
-        minF = 1 - np.product(1-np.array(F), axis=0)
+        minF = 1 - np.prod(1-np.array(F), axis=0)
         return minF
     return analytic_func
 
@@ -215,7 +215,7 @@ def get_minimum_distribution_for_digit(*pmf_list):
     '''
     distribution_list = k distribution 
     F = k * len(distribuion) matrix (pmf -> cdf use np.cumsum)
-    minimum F(x) = 1 - \product (1 - F_i(x))
+    minimum F(x) = 1 - \\product (1 - F_i(x))
     so f(x) = np.diff(F(x))
     '''
 
@@ -261,6 +261,6 @@ def get_minimum_distribution_for_digit(*pmf_list):
     F = np.vstack(padded_arrays)
     # F = np.stack(distribution_list)
     F = np.cumsum(F, axis=1)
-    minF = 1 - np.product(1-F, axis=0)
+    minF = 1 - np.prod(1-F, axis=0)
     f = np.diff(minF, prepend=0)
     return Distribution_digit(dtype='other', pmf_array=f, is_align=True)

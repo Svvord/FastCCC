@@ -125,7 +125,7 @@ def calculate_cluster_quantile(counts_df, labels_df, qt=0.9):
 
     counts_df_with_labels = counts_df.merge(labels_df, left_index=True, right_index=True)
     # mean_counts = counts_df_with_labels.groupby('cell_type').quantile(qt)
-    mean_counts = counts_df_with_labels.groupby('cell_type', observed=True).apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns))
+    mean_counts = counts_df_with_labels.groupby('cell_type', observed=True).apply(lambda x: pd.Series(np.quantile(x,qt, axis=0, method='lower'), index=x.columns), include_groups=False)
     if 'cell_type' in mean_counts:
         mean_counts.drop(columns=['cell_type'], inplace=True)
     return mean_counts
@@ -136,7 +136,7 @@ def combine_complex_distribution_df(mean_counts, complex_table, complex_count_fu
     # complex count dataframe 
     if not complex_table.empty:
         complex_counts = complex_table.groupby('complex_multidata_id').apply(
-            lambda x: x['protein_multidata_id'].values).apply(
+            lambda x: x['protein_multidata_id'].values, include_groups=False).apply(
             lambda x:func(x)).T
         # 合成 最终 mean_counts dataframe
         mean_counts = pd.concat((mean_counts, complex_counts), axis=1)

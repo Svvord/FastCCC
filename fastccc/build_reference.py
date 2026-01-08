@@ -179,7 +179,7 @@ def get_fastccc_input(adata, lrdb_file_path, convert_type = 'hgnc_symbol'):
 
     ##### delete item not involved interactions ####
 
-    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values)).to_dict()
+    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values), include_groups=False).to_dict()
     '''
     dictionary complex_id: [protein_id_1, pid2, pid3, ...]
     foo_dict = {

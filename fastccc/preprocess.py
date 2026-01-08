@@ -150,7 +150,7 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
 
     reduced_counts = counts[:, select_columns].to_df()
     reduced_counts.columns = columns_names
-    reduced_counts = reduced_counts.T.groupby(reduced_counts.columns).mean().T
+    reduced_counts = reduced_counts.T.groupby(level=0).mean().T
     # FutureWarning: DataFrame.groupby with axis=1 is deprecated. Do `frame.T.groupby(...)` without axis instead.
     # reduced_counts = reduced_counts.groupby(reduced_counts.columns, axis=1).mean()
     ######################################
@@ -171,7 +171,7 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     
     ##### delete item not involved interactions ####
     
-    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values)).to_dict()
+    foo_dict = complex_table.groupby('complex_multidata_id').apply(lambda x: list(x['protein_multidata_id'].values), include_groups=False).to_dict()
     '''
     dictionary complex_id: [protein_id_1, pid2, pid3, ...]
     foo_dict = {
