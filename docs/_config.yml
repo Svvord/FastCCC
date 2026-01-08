@@ -1,6 +1,6 @@
 title: FastCCC
 description: FastCCC's tutorial.
-remote_theme: just-the-docs/just-the-docs
+theme: just-the-docs
 
 baseurl: /FastCCC
 url: https://svvord.github.io
