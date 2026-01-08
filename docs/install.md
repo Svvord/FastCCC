@@ -45,17 +45,14 @@ pip install -e .
 
 
 ### Method 2: Installing via pip
-{: .d-inline-block }
-Coming soon
-{: .label .label-blue }
+```bash
+pip install fastccc
+```
 
 {: .important-title }
-> Coming soon
+> Note
 >
-> We are currently organizing the code and packaging functionalities to enhance user convenience. Once the code is finalized, we will upload it to [PyPI] to support installation via pip install. At this stage, please use the code available on GitHub and install it using Conda or Poetry.
-```bash
-pip install fastccc # coming soon.
-```
+> Please ensure that Python version >= 3.11.
 
 ### Method 3: Installing developing version via Poetry
 For developing, we are using the [Poetry] package manager. To install Poetry, follow the instructions [here](https://python-poetry.org/docs/#installing-with-pipx).

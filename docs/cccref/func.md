@@ -10,8 +10,8 @@ nav_order: 1
 
 # Functions
 
-- [`build_reference_workflow`]({{base.site}}/cccref/func.html#build_reference_workflow)
-- [`infer_query_workflow`]({{base.site}}/cccref/func.html#infer_query_workflow)
+- [`build_reference_workflow`]({{site.baseurl}}/cccref/func.html#build_reference_workflow)
+- [`infer_query_workflow`]({{site.baseurl}}/cccref/func.html#infer_query_workflow)
 
 ## `build_reference_workflow`
 
