@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "fastccc"
-version = "0.1.1"
+version = "0.1.2"
 description = "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies."
 authors = ["Svvord <cchousiyu@163.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.13"
-numpy = "^1.24"
+numpy = ">=1.24, <2.4.0"
 pandas = "^2.2.3"
 scipy = "^1.14.1"
 scanpy = "^1.10.3"

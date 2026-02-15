@@ -86,7 +86,7 @@ fastccc.infer_query.infer_query_workflow(
     celltype_file_path = None,
     save_path = save_path,
     meta_key = 'cell_type',
-    debug_mode = True
+    debug_mode = False
 )
 ```
 
