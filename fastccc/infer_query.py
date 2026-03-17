@@ -698,7 +698,11 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
         logger.warning(f"{save_path} already exists, all files will be overwritten")
 
 
-    query = sc.read_h5ad(query_counts_file_path)
+    if isinstance(query_counts_file_path, sc.AnnData):
+        query = query_counts_file_path
+    elif isinstance(query_counts_file_path, str):
+        query = sc.read_h5ad(query_counts_file_path)
+        
     sc.pp.filter_cells(query, min_genes=50) # basic QC
     logger.info(f"Reading query adata, {query.shape[0]} cells x {query.shape[1]} genes")
     

@@ -18,14 +18,13 @@ def get_interactions(cpdb_file_path, select_list=[]):
     return interactions
 
 
-def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_type, meta_key=None, select_list=[], filter_=False):
-
+def get_input_data(cpdb_file_path, meta_file_path, counts_file_path: str | anndata.AnnData, convert_type: str, meta_key=None, select_list=[], filter_=False):
     '''
     input:
         1. cpdb_file_path(str):
             a path of dir which contains all interaction data
             details see temp
-        2. coutns_file_path(str):
+        2. counts_file_path(str):
 
 
     temp:
@@ -64,7 +63,10 @@ def get_input_data(cpdb_file_path, meta_file_path, counts_file_path, convert_typ
     ### interactions, counts, labels  ##
     interactions = get_interactions(cpdb_file_path, select_list)
     start = timeit.default_timer()
-    counts = anndata.read_h5ad(counts_file_path)#.to_df()
+    if isinstance(counts_file_path, anndata.AnnData):
+        counts = counts_file_path
+    elif isinstance(counts_file_path, str):
+        counts = anndata.read_h5ad(counts_file_path)
     counts.var_names_make_unique()
     stop = timeit.default_timer()
     logger.debug(f'Read Time: {stop - start}') 

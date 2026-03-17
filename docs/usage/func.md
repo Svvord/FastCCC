@@ -12,8 +12,8 @@ nav_order: 1
 
 # Functions
 
-- [`statistical_analysis_method`]({{base.site}}/usage/func.html#statistical_analysis_method)
-- [`infer_query_workflow`]({{base.site}}/cccref/func.html#infer_query_workflow)
+- [`statistical_analysis_method`]({{base.site}}/FastCCC/usage/func.html#statistical_analysis_method)
+- [`infer_query_workflow`]({{base.site}}/FastCCC/cccref/func.html#infer_query_workflow)
 
 
 ## `statistical_analysis_method`
@@ -47,7 +47,7 @@ def statistical_analysis_method(
 |-------------------------|-----------------|--------------------|--------------|
 | `database_file_path`     | `str`            |                | Path to the database directory containing the candidate LRIs. |
 | `celltype_file_path`     | `str`            |                | Path to the cell type annotation file. If the h5ad count file already contains cell type labels, this can be set to `None`, and the `meta_key` parameter should be specified instead. |
-| `counts_file_path`       | `str`            |                | Path to the ***normalized log1p-transformed matrix*** file in h5ad format. |
+| `counts_file_path`       | `str` or `anndata.AnnData`            |                | Path to the ***normalized log1p-transformed matrix*** file in h5ad format, or an in-memory `anndata.AnnData` object containing the same data. |
 | `convert_type`           | `str`            | `'hgnc_symbol'`     | Type of gene identifier used in your data, such as `'hgnc_symbol'` or `'ensembl'`. |
 | `single_unit_summary` | `str`            | `'Mean'`            | Method for calculating single-unit expression summaries, options include `'Mean'`, `'Median'` or `'Q2'`, `'Q3'`, `'Quantile_x'`, etc. |
 | `complex_aggregation` | `str`            | `'Minimum'`         | Method for calculating multi-unit complex summaries, options include `'Minimum'`, `'Average'`. |
@@ -104,7 +104,7 @@ The `fastccc.core.Cauchy_combination_of_statistical_analysis_methods` function p
 |------------------------------|---------------|--------------------------------------------------|--------------|
 | `database_file_path`          | `str`         |                          | Path to the database directory containing the candidate LRIs. |
 | `celltype_file_path`          | `str`         |                          | Path to the cell type annotation file. If the h5ad count file already contains cell type labels, this can be set to `None`, and the `meta_key` parameter should be specified instead. |
-| `counts_file_path`            | `str`         |                          | Path to the normalized log1p-transformed matrix file in h5ad format. |
+| `counts_file_path`            |  `str` or `anndata.AnnData`            |                | Path to the ***normalized log1p-transformed matrix*** file in h5ad format, or an in-memory `anndata.AnnData` object containing the same data. |
 | `convert_type`                | `str`         | `'hgnc_symbol'`                                  | Type of gene identifier used in your data, such as `'hgnc_symbol'` or `'ensembl'`. |
 | `single_unit_summary_list` | `list[str]`    | `['Mean', 'Median', 'Q3', 'Quantile_0.9']`       | List of methods for calculating single-unit summaries. |
 | `complex_aggregation_list` | `list[str]`    | `['Minimum', 'Average']`                         | List of methods for calculating multi-unit complex summaries. |

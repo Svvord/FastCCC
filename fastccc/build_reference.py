@@ -429,7 +429,11 @@ def build_reference_workflow(database_file_path, reference_counts_file_path, cel
     else:
         logger.warning(f"{save_path} already exists, all files will be overwritten")
 
-    reference = sc.read_h5ad(reference_counts_file_path)
+    if isinstance(reference_counts_file_path, sc.AnnData):
+        reference = reference_counts_file_path
+    elif isinstance(reference_counts_file_path, str):
+        reference = sc.read_h5ad(reference_counts_file_path)
+
     sc.pp.filter_cells(reference, min_genes=50)
     logger.info(f"Reading reference adata, {reference.shape[0]} cells x {reference.shape[1]} genes.")
 

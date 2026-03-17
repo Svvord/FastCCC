@@ -94,7 +94,6 @@ census = cellxgene_census.open_soma()
 
 filter_condition = "tissue_general == 'lung' "
 filter_condition += "and disease == 'normal' "
-filter_condition += "and is_primary_data == False "
 filter_condition += "and cell_type!='unknown' "
 
 adata = cellxgene_census.get_anndata(
