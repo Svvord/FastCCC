@@ -170,3 +170,6 @@ poetry_install.md
 results
 
 .DS_Store
+
+# local test data and outputs — not tracked
+scratch/

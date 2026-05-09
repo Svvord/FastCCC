@@ -107,7 +107,7 @@ def rank_preprocess(adata):
     np.random.seed(42) # add seed to ensure reproduiablity
     assert issparse(adata.X), "Anndata.X should be a sparse matrix format."
     if adata.shape[1] < 5000:
-        logger.warning("Do you use whole transcriptomes? Raw data w\o filtering genes should work better.")
+        logger.warning("Do you use whole transcriptomes? Raw data w/o filtering genes should work better.")
 
     for i in tqdm(range(adata.shape[0]), desc="Ranking genes for cells", unit="cell", 
               bar_format="{l_bar}{bar} | {n_fmt}/{total_fmt} cells completed", leave=False):

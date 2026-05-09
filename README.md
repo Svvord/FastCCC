@@ -5,6 +5,8 @@
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://svvord.github.io/FastCCC/) &nbsp;
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Svvord/FastCCC/blob/main/LICENSE)
 
+**[2026.05.09]** New: FastCCC now provides an automated HTML report generation feature (`fastccc.report.generate_report`). After running FastCCC, a single function call produces a self-contained interactive report with 24 publication-quality figures covering global CCC overview, ligand–receptor analysis, pathway enrichment, cell-type profiles, network analyses, and — when two conditions are provided — a differential comparison tab. See the [Report Tutorial](https://svvord.github.io/FastCCC/usage/report.html) for details.
+
 **[2025.02.01]** Update: To minimize the size of transmitted panel data, we leverage FastCCC’s speed to compute essential reference data during first-time usage. This process incurs only an additional 1–2 minutes during initial activation. Meanwhile, the storage requirement for uploading the panel data has been significantly reduced (from 3GB to 5MB per tissue panel).
 
 **[2025.01.23]** We have provided a comprehensive [tutorial](https://svvord.github.io/FastCCC/) on the usage of FastCCC, which includes detailed instructions on installation, usage, and more. We highly recommend referring to this [tutorial](https://svvord.github.io/FastCCC/) for a step-by-step guide.
@@ -36,11 +38,23 @@ pip install fastccc
 ```
 
 ### Method 3: Installing developing version via Poetry
-For developing, we are using the [Poetry] package manager. To install Poetry, follow the instructions [here](https://python-poetry.org/docs/#installing-with-pipx).
+For developing, we are using the [Poetry](https://python-poetry.org/) package manager. To install Poetry, follow the instructions [here](https://python-poetry.org/docs/#installing-with-pipx).
 ```bash
 git clone https://github.com/Svvord/FastCCC.git
 cd ./FastCCC
 poetry install
+```
+
+### Method 4: Installing developing version via uv
+Alternatively, you can use [uv](https://docs.astral.sh/uv/) for a faster setup. To install uv, follow the instructions [here](https://docs.astral.sh/uv/getting-started/installation/).
+```bash
+git clone https://github.com/Svvord/FastCCC.git
+cd ./FastCCC
+uv sync
+```
+To also install development dependencies:
+```bash
+uv sync --group dev
 ```
 
 ## How to use `FastCCC`

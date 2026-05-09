@@ -1,29 +1,37 @@
-[tool.poetry]
+[project]
 name = "fastccc"
-version = "0.1.3"
+version = "0.1.4"
 description = "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies."
-authors = ["Svvord <cchousiyu@163.com>"]
+authors = [
+    {name = "Svvord", email = "cchousiyu@163.com"}
+]
 readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "numpy>=1.24,<2.4.0",
+    "pandas>=2.2.3,<3",
+    "scipy>=1.14.1,<2",
+    "scanpy>=1.10.3,<2",
+    "loguru>=0.7.2,<0.8",
+    "openpyxl>=3.1.5,<4",
+    "gseapy>=1.1.4,<2",
+    "psutil>=6.1.1,<7",
+    "matplotlib (>=3.10.9,<4.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
+    "networkx (>=3.6.1,<4.0.0)",
+    "adjusttext (>=1.0)",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11, <3.13"
-numpy = ">=1.24, <2.4.0"
-pandas = "^2.2.3"
-scipy = "^1.14.1"
-scanpy = "^1.10.3"
-loguru = "^0.7.2"
-openpyxl = "^3.1.5"
-gseapy = "^1.1.4"
-psutil = "^6.1.1"
-
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-matplotlib = "^3.9.2"
-seaborn = "^0.13.2"
-cellxgene-census = "^1.16.2"
-jinja2 = "^3.1.5"
-psutil = "^6.1.1"
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5,<7",
+    "matplotlib>=3.9.2,<4",
+    "seaborn>=0.13.2,<0.14",
+    "cellxgene-census>=1.16.2,<2",
+    "jinja2>=3.1.5,<4",
+    "psutil>=6.1.1,<7",
+]
 
 [build-system]
 requires = ["poetry-core"]

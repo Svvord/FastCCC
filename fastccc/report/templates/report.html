@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastCCC Report — {{ sample_name }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; background: #f4f6f9; }
+.page { max-width: 1140px; margin: 0 auto; background: white; padding: 0 0 60px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+
+/* ── Header ── */
+.header { background: #2c5f8a; color: white; padding: 22px 50px 18px; }
+.header h1 { font-size: 21px; margin-bottom: 5px; }
+.header .subtitle { font-size: 13px; opacity: .85; }
+.header .meta    { margin-top: 8px; font-size: 11px; opacity: .7; }
+
+/* ── Tab bar ── */
+.tab-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: #1e4872; display: flex; gap: 0;
+  border-bottom: 3px solid #f0a500;
+  overflow-x: auto; white-space: nowrap;
+}
+.tab-btn {
+  padding: 11px 22px; border: none;
+  background: transparent; color: rgba(255,255,255,.7);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border-bottom: 3px solid transparent; margin-bottom: -3px;
+  transition: color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.tab-btn:hover  { color: white; }
+.tab-btn.active { color: white; border-bottom-color: #f0a500; }
+.tab-btn.diff-btn { background: rgba(240,165,0,.12); }
+.tab-btn.diff-btn.active { background: rgba(240,165,0,.22); }
+
+/* ── Tab content ── */
+.tab-content { display: none; padding: 32px 50px 10px; }
+.tab-content.active { display: block; }
+
+/* ── Section ── */
+.section { margin-bottom: 48px; }
+.section h2 { font-size: 16px; color: #2c5f8a; border-bottom: 1.5px solid #cce; padding-bottom: 6px; margin-bottom: 18px; }
+.section h3 { font-size: 14px; color: #333; margin: 26px 0 10px; }
+
+/* ── Stat grid ── */
+.stat-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.stat-box  { background: #f0f5fb; border-radius: 6px; padding: 12px 18px; flex: 1; min-width: 140px; text-align: center; }
+.stat-box .val { font-size: 24px; font-weight: bold; color: #2c5f8a; }
+.stat-box .lbl { font-size: 11px; color: #666; margin-top: 3px; }
+
+/* ── Figures ── */
+.fig-block { margin: 18px 0 28px; }
+.fig-block img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; display: block; margin: 0 auto; }
+.fig-caption { font-size: 11px; color: #555; margin-top: 8px; line-height: 1.55; }
+.fig-caption strong { color: #333; }
+.skip-note { font-size: 11px; color: #aaa; font-style: italic; margin: 8px 0; }
+
+/* ── Tables ── */
+table { border-collapse: collapse; width: 100%; font-size: 11px; margin: 12px 0; }
+th { background: #2c5f8a; color: white; padding: 6px 10px; text-align: left; }
+td { padding: 5px 10px; border-bottom: 1px solid #eee; }
+tr:nth-child(even) td { background: #f8f9fb; }
+
+/* ── Methods ── */
+.methods { background: #fafafa; border: 1px solid #ddd; border-radius: 4px; padding: 18px 22px; font-size: 12px; line-height: 1.7; color: #444; }
+.methods p { margin-bottom: 10px; }
+
+/* ── Footer ── */
+.footer { border-top: 1px solid #ddd; padding: 14px 50px; font-size: 11px; color: #aaa; text-align: center; }
+
+/* ── In-tab TOC ── */
+.toc { background: #f0f5fb; border-left: 4px solid #2c5f8a; padding: 14px 18px; margin-bottom: 28px; border-radius: 3px; }
+.toc h3 { font-size: 12px; margin-bottom: 7px; color: #2c5f8a; }
+.toc ol { padding-left: 18px; }
+.toc li { margin-bottom: 2px; }
+.toc a  { color: #2c5f8a; text-decoration: none; font-size: 12px; }
+.toc a:hover { text-decoration: underline; }
+
+/* ── Diff tab ── */
+.diff-label { display: inline-block; background: #f0a500; color: white; font-size: 11px;
+              padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+
+/* ── Run-parameters card ── */
+.run-params { background: #f7f9fc; border: 1px solid #dce4ef; border-radius: 5px;
+              padding: 14px 20px; margin-top: 18px; }
+.run-params h3 { font-size: 12px; color: #2c5f8a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.run-params table { font-size: 11.5px; margin: 0; }
+.run-params th { background: none; color: #555; font-weight: 600; padding: 3px 14px 3px 0; width: 180px; }
+.run-params td { background: none; padding: 3px 0; border: none; color: #222; }
+.run-params tr { border: none; }
+.run-params code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>FastCCC Cell–Cell Communication Analysis Report</h1>
+  <div class="subtitle">{{ sample_name }} &nbsp;|&nbsp; Task: <code>{{ task_id }}</code></div>
+  <div class="meta">{{ report_date }} &nbsp;|&nbsp; DB: {{ database_name }} &nbsp;|&nbsp; FastCCC v{{ version }}</div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  {% for tab in tabs %}
+  <button class="tab-btn {% if loop.first %}active{% endif %}"
+          onclick="showTab('{{ tab.id }}', this)">{{ tab.name }}</button>
+  {% endfor %}
+  {% if has_differential %}
+  <button class="tab-btn diff-btn"
+          onclick="showTab('diff', this)">{{ name_a }} vs {{ name_b }}
+    <span class="diff-label">Δ</span>
+  </button>
+  {% endif %}
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MACRO: render the 7 analysis sections for one condition tab
+     ═══════════════════════════════════════════════════════════ -->
+{% macro render_tab(tab, ri) %}
+{% set f = tab.figs %}
+{% set s = tab.stats %}
+{% set n = tab.name %}
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#{{ tab.id }}-summary">Executive Summary</a></li>
+    <li><a href="#{{ tab.id }}-overview">Global CCC Overview</a></li>
+    <li><a href="#{{ tab.id }}-lr">Ligand–Receptor Pair Analysis</a></li>
+    <li><a href="#{{ tab.id }}-enrichment">Pathway Enrichment</a></li>
+    <li><a href="#{{ tab.id }}-celltype">Cell Type Profiles</a></li>
+    <li><a href="#{{ tab.id }}-network">Network Analyses</a></li>
+    <li><a href="#{{ tab.id }}-advanced">Advanced L-R Analyses</a></li>
+  </ol>
+</div>
+
+<!-- 1. SUMMARY -->
+<div class="section" id="{{ tab.id }}-summary">
+  <h2>1. Executive Summary</h2>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="val">{{ s.n_celltypes }}</div><div class="lbl">Cell types</div></div>
+    <div class="stat-box"><div class="val">{{ s.n_sig_interactions }}</div><div class="lbl">Significant interactions</div></div>
+    <div class="stat-box"><div class="val">{{ s.n_lr_pairs }}</div><div class="lbl">Unique L-R pairs</div></div>
+    <div class="stat-box"><div class="val">{{ s.n_ct_pairs }}</div><div class="lbl">Active cell-type pairs</div></div>
+    <div class="stat-box"><div class="val">{{ s.n_pathways }}</div><div class="lbl">Pathway classes</div></div>
+  </div>
+  {% if s.top_sender %}
+  <p style="line-height:1.7; font-size:13px;">
+    FastCCC identified <strong>{{ s.n_sig_interactions }}</strong> significant L-R interactions
+    across <strong>{{ s.n_ct_pairs }}</strong> cell-type pairs in <em>{{ n }}</em>.
+    Top sender: <em>{{ s.top_sender }}</em> ({{ s.top_sender_count }} outgoing).
+    Top receiver: <em>{{ s.top_receiver }}</em> ({{ s.top_receiver_count }} incoming).
+    Dominant pathway: <em>{{ s.top_pathway }}</em> ({{ s.top_pathway_count }} interactions).
+  </p>
+  {% endif %}
+
+  <div class="run-params">
+    <h3>Run Parameters</h3>
+    <table>
+      <tr><th>Sample</th><td>{{ n }}</td></tr>
+      <tr><th>Task ID</th><td>
+        {%- if tab.id == 'cond_a' and ri.cond_a_task_id -%}
+          <code>{{ ri.cond_a_task_id }}</code>
+        {%- elif tab.id == 'cond_b' and ri.cond_b_task_id -%}
+          <code>{{ ri.cond_b_task_id }}</code>
+        {%- else -%}
+          <code>{{ ri.task_id }}</code>
+        {%- endif -%}
+      </td></tr>
+      <tr><th>Database</th><td>{{ ri.database_name }}</td></tr>
+      <tr><th>p-value threshold</th><td>{{ ri.pval_threshold }}</td></tr>
+      <tr><th>Top L-R pairs shown</th><td>{{ ri.top_n_lr }}</td></tr>
+      <tr><th>Top cell types shown</th><td>{{ ri.top_n_celltypes }}</td></tr>
+      <tr><th>Enrichment gene sets</th><td>{{ ri.gene_sets_str }}</td></tr>
+      {% if ri.has_conditions %}
+      <tr><th>Conditions compared</th><td>{{ ri.name_a }} vs {{ ri.name_b }}</td></tr>
+      {% endif %}
+      <tr><th>Report generated</th><td>{{ ri.report_date }}</td></tr>
+      <tr><th>FastCCC version</th><td>{{ ri.version }}</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 2. GLOBAL OVERVIEW -->
+<div class="section" id="{{ tab.id }}-overview">
+  <h2>2. Global CCC Overview</h2>
+
+  <h3>Figure 1 — Interaction Count Heatmap</h3>
+  {% if f.count_heatmap[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.count_heatmap[0] }}" alt="Count Heatmap">
+    <div class="fig-caption"><strong>Figure 1.</strong> {{ f.count_heatmap[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 1 not generated.</p>{% endif %}
+
+  <h3>Figure 2 — Communication Strength Heatmap</h3>
+  {% if f.strength_heatmap[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.strength_heatmap[0] }}" alt="Strength Heatmap">
+    <div class="fig-caption"><strong>Figure 2.</strong> {{ f.strength_heatmap[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 2 not generated.</p>{% endif %}
+
+  <h3>Figure 3 — Chord Diagram</h3>
+  {% if f.chord[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.chord[0] }}" alt="Chord Diagram">
+    <div class="fig-caption"><strong>Figure 3.</strong> {{ f.chord[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 3 not generated.</p>{% endif %}
+
+  <h3>Figure 4 — Top Sender and Receiver Cell Types</h3>
+  {% if f.sr_bar[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.sr_bar[0] }}" alt="Sender Receiver Bar">
+    <div class="fig-caption"><strong>Figure 4.</strong> {{ f.sr_bar[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 4 not generated.</p>{% endif %}
+</div>
+
+<!-- 3. L-R ANALYSIS -->
+<div class="section" id="{{ tab.id }}-lr">
+  <h2>3. Ligand–Receptor Pair Analysis</h2>
+
+  <h3>Figure 5 — Top L-R Pairs Dot Plot</h3>
+  {% if f.lr_dotplot[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.lr_dotplot[0] }}" alt="LR Dotplot">
+    <div class="fig-caption"><strong>Figure 5.</strong> {{ f.lr_dotplot[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 5 not generated.</p>{% endif %}
+
+  <h3>Figure 6 — Pathway Classification Distribution</h3>
+  {% if f.class_bar[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.class_bar[0] }}" alt="Classification Bar">
+    <div class="fig-caption"><strong>Figure 6.</strong> {{ f.class_bar[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 6 not generated.</p>{% endif %}
+
+  <h3>Figure 7 — Pathway × Cell-Type Pair Heatmap</h3>
+  {% if f.path_ct[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.path_ct[0] }}" alt="Pathway CT Heatmap">
+    <div class="fig-caption"><strong>Figure 7.</strong> {{ f.path_ct[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 7 not generated.</p>{% endif %}
+</div>
+
+<!-- 4. ENRICHMENT -->
+<div class="section" id="{{ tab.id }}-enrichment">
+  <h2>4. Pathway Enrichment Analysis</h2>
+
+  <h3>Figure 8 — Ligand Gene ORA</h3>
+  {% if f.lig_ora[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.lig_ora[0] }}" alt="Ligand ORA">
+    <div class="fig-caption"><strong>Figure 8.</strong> {{ f.lig_ora[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 8 not generated.</p>{% endif %}
+
+  <h3>Figure 9 — Receptor Gene ORA</h3>
+  {% if f.rec_ora[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.rec_ora[0] }}" alt="Receptor ORA">
+    <div class="fig-caption"><strong>Figure 9.</strong> {{ f.rec_ora[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 9 not generated.</p>{% endif %}
+
+  <h3>Figure 10 — Predicted TF Activation Heatmap</h3>
+  {% if f.tf[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.tf[0] }}" alt="TF Heatmap">
+    <div class="fig-caption"><strong>Figure 10.</strong> {{ f.tf[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 10 not generated (requires CPDBv5).</p>{% endif %}
+</div>
+
+<!-- 5. CELL TYPE PROFILES -->
+<div class="section" id="{{ tab.id }}-celltype">
+  <h2>5. Cell Type Communication Profiles</h2>
+
+  <h3>Figure 11 — Sender vs. Receiver Scatter</h3>
+  {% if f.io_scatter[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.io_scatter[0] }}" alt="IO Scatter">
+    <div class="fig-caption"><strong>Figure 11.</strong> {{ f.io_scatter[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 11 not generated.</p>{% endif %}
+
+  <h3>Figure 12 — Sender Pathway Specificity</h3>
+  {% if f.sender_pathway[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.sender_pathway[0] }}" alt="Sender Pathway">
+    <div class="fig-caption"><strong>Figure 12.</strong> {{ f.sender_pathway[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 12 not generated.</p>{% endif %}
+
+  <h3>Figure 13 — Outgoing Interaction Flow</h3>
+  {% if f.flow[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.flow[0] }}" alt="Interaction Flow">
+    <div class="fig-caption"><strong>Figure 13.</strong> {{ f.flow[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 13 not generated.</p>{% endif %}
+</div>
+
+<!-- 6. NETWORK -->
+<div class="section" id="{{ tab.id }}-network">
+  <h2>6. Network-Level Analyses</h2>
+
+  <h3>Figure 14 — Communication Network</h3>
+  {% if f.network[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.network[0] }}" alt="Network">
+    <div class="fig-caption"><strong>Figure 14.</strong> {{ f.network[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 14 not generated.</p>{% endif %}
+
+  <h3>Figure 15 — Sender → Pathway → Receiver Alluvial</h3>
+  {% if f.sankey[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.sankey[0] }}" alt="Sankey">
+    <div class="fig-caption"><strong>Figure 15.</strong> {{ f.sankey[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 15 not generated.</p>{% endif %}
+
+  <h3>Figure 16 — Autocrine vs. Paracrine</h3>
+  {% if f.autocrine[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.autocrine[0] }}" alt="Autocrine">
+    <div class="fig-caption"><strong>Figure 16.</strong> {{ f.autocrine[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 16 not generated.</p>{% endif %}
+
+  <h3>Figure 17 — L-R Bipartite Network</h3>
+  {% if f.bipartite[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.bipartite[0] }}" alt="Bipartite">
+    <div class="fig-caption"><strong>Figure 17.</strong> {{ f.bipartite[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 17 not generated.</p>{% endif %}
+</div>
+
+<!-- 7. ADVANCED -->
+<div class="section" id="{{ tab.id }}-advanced">
+  <h2>7. Advanced Ligand–Receptor Analyses</h2>
+
+  <h3>Figure 18 — Pathway Information Flow</h3>
+  {% if f.info_flow[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.info_flow[0] }}" alt="Info Flow">
+    <div class="fig-caption"><strong>Figure 18.</strong> {{ f.info_flow[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 18 not generated.</p>{% endif %}
+
+  <h3>Figure 19 — Top L-R Pairs per Pathway</h3>
+  {% if f.lr_multiples[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.lr_multiples[0] }}" alt="LR Multiples">
+    <div class="fig-caption"><strong>Figure 19.</strong> {{ f.lr_multiples[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 19 not generated.</p>{% endif %}
+
+  <h3>Figure 20 — L-R Pair Specificity Heatmap</h3>
+  {% if f.lr_spec[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.lr_spec[0] }}" alt="LR Specificity">
+    <div class="fig-caption"><strong>Figure 20.</strong> {{ f.lr_spec[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 20 not generated.</p>{% endif %}
+
+  <h3>Figure 21 — CS Distribution Violin</h3>
+  {% if f.cs_violin[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.cs_violin[0] }}" alt="CS Violin">
+    <div class="fig-caption"><strong>Figure 21.</strong> {{ f.cs_violin[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 21 not generated.</p>{% endif %}
+</div>
+{% endmacro %}
+
+<!-- ══════ CONDITION TABS ══════ -->
+{% set ri = {
+  'task_id':         task_id,
+  'database_name':   database_name,
+  'pval_threshold':  pval_threshold,
+  'top_n_lr':        top_n_lr,
+  'top_n_celltypes': top_n_celltypes,
+  'gene_sets_str':   gene_sets_str,
+  'has_conditions':  has_conditions,
+  'name_a':          name_a,
+  'name_b':          name_b,
+  'cond_a_task_id':  cond_a_task_id,
+  'cond_b_task_id':  cond_b_task_id,
+  'report_date':     report_date,
+  'version':         version,
+} %}
+{% for tab in tabs %}
+<div id="tab-{{ tab.id }}" class="tab-content {% if loop.first %}active{% endif %}">
+  {{ render_tab(tab, ri) }}
+</div>
+{% endfor %}
+
+<!-- ══════ DIFFERENTIAL TAB ══════ -->
+{% if has_differential %}
+<div id="tab-diff" class="tab-content">
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#diff-heatmap">Differential Interaction Heatmap</a></li>
+      <li><a href="#diff-volcano">Differential Volcano Plot</a></li>
+      <li><a href="#diff-pathway">Differential Pathway Activity</a></li>
+    </ol>
+  </div>
+
+  <div class="section" id="diff-heatmap">
+    <h2>Differential CCC Analysis — {{ name_a }} vs. {{ name_b }}</h2>
+
+    <h3>Figure 22 — Differential Interaction Count Heatmap</h3>
+    {% if diff_figs.heatmap[0] %}<div class="fig-block">
+      <img src="data:image/png;base64,{{ diff_figs.heatmap[0] }}" alt="Diff Heatmap">
+      <div class="fig-caption"><strong>Figure 22.</strong> {{ diff_figs.heatmap[1] }}</div>
+    </div>{% else %}<p class="skip-note">Figure 22 not generated.</p>{% endif %}
+  </div>
+
+  <div class="section" id="diff-volcano">
+    <h3>Figure 23 — Differential L-R Volcano Plot</h3>
+    {% if diff_figs.volcano[0] %}<div class="fig-block">
+      <img src="data:image/png;base64,{{ diff_figs.volcano[0] }}" alt="Diff Volcano">
+      <div class="fig-caption"><strong>Figure 23.</strong> {{ diff_figs.volcano[1] }}</div>
+    </div>{% else %}<p class="skip-note">Figure 23 not generated.</p>{% endif %}
+  </div>
+
+  <div class="section" id="diff-pathway">
+    <h3>Figure 24 — Differential Pathway Activity</h3>
+    {% if diff_figs.pathway[0] %}<div class="fig-block">
+      <img src="data:image/png;base64,{{ diff_figs.pathway[0] }}" alt="Diff Pathway">
+      <div class="fig-caption"><strong>Figure 24.</strong> {{ diff_figs.pathway[1] }}</div>
+    </div>{% else %}<p class="skip-note">Figure 24 not generated.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ══════ SUPPLEMENTARY TABLES (always visible) ══════ -->
+<div style="padding: 0 50px;">
+<div class="section" id="tables">
+  <h2>Supplementary Tables <span style="font-size:12px; font-weight:normal; color:#888;">(full dataset)</span></h2>
+
+  <h3>Table 1 — Top 50 Significant Interactions</h3>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Sender</th><th>Receiver</th><th>Ligand</th><th>Receptor</th>
+      <th>p-value</th><th>Pathway</th>
+    </tr></thead>
+    <tbody>
+      {% for row in top_interactions %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.sender_celltype }}</td><td>{{ row.receiver_celltype }}</td>
+        <td><em>{{ row.ligand }}</em></td><td><em>{{ row.receptor }}</em></td>
+        <td>{{ "%.2e"|format(row['p-value']) }}</td>
+        <td>{{ row.classification }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Table 2 — Interaction Count per Cell-Type Pair</h3>
+  <table>
+    <thead><tr><th>Sender</th><th>Receiver</th><th>N interactions</th></tr></thead>
+    <tbody>
+      {% for row in ct_pair_counts %}
+      <tr><td>{{ row.sender }}</td><td>{{ row.receiver }}</td><td>{{ row.count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════ METHODS ══════ -->
+<div class="section" id="methods">
+  <h2>Methods</h2>
+  <div class="methods">
+    <p><strong>Cell–cell communication inference.</strong>
+    FastCCC (Hou et al., <em>Nat. Commun.</em> 16, 11428, 2025) was used to infer
+    significant L-R interactions via FFT-based analytical p-values and a Cauchy
+    combination test across 16 summary-statistic/aggregation variants.
+    Database: <strong>{{ database_name }}</strong>. Threshold: p&nbsp;&lt;&nbsp;0.05.</p>
+
+    <p><strong>Pathway enrichment.</strong>
+    ORA was performed with <strong>gseapy</strong> (Fang et al., 2023) against
+    {{ gene_sets_str }}. Fisher's exact test; Benjamini–Hochberg correction; adj.&nbsp;p&nbsp;&lt;&nbsp;0.05.</p>
+
+    <p><strong>Network analyses.</strong>
+    Directed graph built with <strong>NetworkX</strong>; betweenness centrality (weighted).
+    Alluvial/Sankey diagrams use custom matplotlib Hermite S-curve ribbon fills.</p>
+
+    <p><strong>Differential analysis.</strong>
+    Each condition was analysed independently. Differential interaction counts are
+    raw differences (Δ&nbsp;=&nbsp;B&nbsp;−&nbsp;A). The volcano plot shows
+    log₂&nbsp;FC of CS and −log₁₀(min p-value) for L-R pairs significant in ≥1 condition.</p>
+
+    <p><strong>Visualisation.</strong>
+    All figures generated with <strong>matplotlib</strong> (Hunter, 2007) and
+    <strong>seaborn</strong> (Waskom, 2021). Saved at {{ "300" }} DPI (PNG + SVG).</p>
+  </div>
+</div>
+</div><!-- /padding -->
+
+<!-- FOOTER -->
+<div class="footer">
+  FastCCC Report Pipeline &nbsp;|&nbsp;
+  Hou et al., <em>Nat. Commun.</em> 16, 11428 (2025) &nbsp;|&nbsp;
+  <a href="https://github.com/Svvord/FastCCC" style="color:#bbb;">github.com/Svvord/FastCCC</a>
+</div>
+
+</div><!-- .page -->
+
+<script>
+function showTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('tab-' + tabId).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
