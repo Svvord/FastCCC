@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import itertools
-import timeit
 from .distrib import get_pvalue_from_pmf
 
 def calculate_key_interactions_pvalue(mean_pmf, interactions, interactions_strength, percent_analysis, method='Arithmetic'):
@@ -24,12 +23,10 @@ def calculate_key_interactions_pvalue(mean_pmf, interactions, interactions_stren
     p2_items = p2.values[np.where(percent_analysis)]
     
     
-    start = timeit.default_timer()
     if method == 'Arithmetic':
         pval_pmfs = (p1_items & p2_items) / 2
     elif method == 'Geometric':
         pval_pmfs = p1_items * p2_items
-    stop = timeit.default_timer()
     
     mean_gt = interactions_strength.values[np.where(percent_analysis)]
     est = []

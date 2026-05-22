@@ -25,17 +25,21 @@ from .modules.enrichment import (
 )
 from .modules.celltype_profile import (
     plot_io_scatter, plot_interaction_flow, plot_sender_pathway_heatmap,
+    plot_receiver_pathway_heatmap, plot_incoming_flow,
 )
 from .modules.network import (
     plot_network_centrality, plot_sankey_flow,
     plot_autocrine_paracrine, plot_bipartite_lr,
+    plot_communication_asymmetry, plot_network_communities,
 )
 from .modules.advanced import (
     plot_pathway_info_flow, plot_pathway_lr_multiples,
     plot_lr_specificity, plot_cs_violin,
+    plot_lr_cooccurrence, plot_pathway_crosstalk,
 )
 from .modules.differential import (
     plot_diff_heatmap, plot_diff_volcano, plot_diff_pathway_bar,
+    plot_lr_stability,
 )
 
 
@@ -168,10 +172,16 @@ def generate_report(
         f['sankey']          = _run(f"{prefix}_fig15", plot_sankey_flow,             data, colors)
         f['autocrine']       = _run(f"{prefix}_fig16", plot_autocrine_paracrine,     data, colors)
         f['bipartite']       = _run(f"{prefix}_fig17", plot_bipartite_lr,            data, colors)
-        f['info_flow']       = _run(f"{prefix}_fig18", plot_pathway_info_flow,       data)
-        f['lr_multiples']    = _run(f"{prefix}_fig19", plot_pathway_lr_multiples,    data)
-        f['lr_spec']         = _run(f"{prefix}_fig20", plot_lr_specificity,          data)
-        f['cs_violin']       = _run(f"{prefix}_fig21", plot_cs_violin,               data)
+        f['info_flow']          = _run(f"{prefix}_fig18", plot_pathway_info_flow,          data)
+        f['lr_multiples']       = _run(f"{prefix}_fig19", plot_pathway_lr_multiples,       data)
+        f['lr_spec']            = _run(f"{prefix}_fig20", plot_lr_specificity,             data)
+        f['cs_violin']          = _run(f"{prefix}_fig21", plot_cs_violin,                  data)
+        f['receiver_pathway']   = _run(f"{prefix}_fig25", plot_receiver_pathway_heatmap,   data)
+        f['incoming_flow']      = _run(f"{prefix}_fig26", plot_incoming_flow,              data, colors)
+        f['asymmetry']          = _run(f"{prefix}_fig27", plot_communication_asymmetry,    data, colors)
+        f['communities']        = _run(f"{prefix}_fig28", plot_network_communities,        data, colors)
+        f['lr_cooccurrence']    = _run(f"{prefix}_fig29", plot_lr_cooccurrence,            data)
+        f['pathway_crosstalk']  = _run(f"{prefix}_fig30", plot_pathway_crosstalk,          data)
         return f
 
     # ── Build tabs ───────────────────────────────────────────────────────────
@@ -208,9 +218,10 @@ def generate_report(
     if has_differential:
         logger.info(f"Generating differential figures — {name_a} vs {name_b}")
         diff_figs = {
-            'heatmap': _run("diff_fig22", plot_diff_heatmap,      data_a, data_b, name_a, name_b, pval_threshold),
-            'volcano': _run("diff_fig23", plot_diff_volcano,       data_a, data_b, name_a, name_b, pval_threshold),
-            'pathway': _run("diff_fig24", plot_diff_pathway_bar,   data_a, data_b, name_a, name_b, pval_threshold),
+            'heatmap':   _run("diff_fig22", plot_diff_heatmap,     data_a, data_b, name_a, name_b, pval_threshold),
+            'volcano':   _run("diff_fig23", plot_diff_volcano,      data_a, data_b, name_a, name_b, pval_threshold),
+            'pathway':   _run("diff_fig24", plot_diff_pathway_bar,  data_a, data_b, name_a, name_b, pval_threshold),
+            'stability': _run("diff_fig31", plot_lr_stability,      data_a, data_b, name_a, name_b, pval_threshold),
         }
 
     # ── Supplementary tables (from full dataset) ─────────────────────────────

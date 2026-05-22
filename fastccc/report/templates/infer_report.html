@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastCCC Reference Inference Report — {{ query_name }} vs {{ reference_name }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; background: #f4f6f9; }
+.page { max-width: 1140px; margin: 0 auto; background: white; padding: 0 0 60px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+
+/* ── Header ── */
+.header { background: #2c5f8a; color: white; padding: 22px 50px 18px; }
+.header h1 { font-size: 21px; margin-bottom: 5px; }
+.header .subtitle { font-size: 13px; opacity: .85; }
+.header .meta    { margin-top: 8px; font-size: 11px; opacity: .7; }
+.header .badge   { display: inline-block; background: #f0a500; color: #222;
+                   font-size: 11px; font-weight: bold; padding: 2px 10px;
+                   border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+
+/* ── Nav bar ── */
+.nav-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: #1e4872; display: flex; gap: 0;
+  border-bottom: 3px solid #f0a500;
+  overflow-x: auto; white-space: nowrap;
+}
+.nav-btn {
+  padding: 11px 22px; border: none;
+  background: transparent; color: rgba(255,255,255,.75);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  text-decoration: none; display: inline-block;
+  border-bottom: 3px solid transparent; margin-bottom: -3px;
+  transition: color .15s, border-color .15s;
+}
+.nav-btn:hover { color: white; border-bottom-color: rgba(240,165,0,.5); }
+
+/* ── Content ── */
+.content { padding: 36px 50px 10px; }
+
+/* ── Section ── */
+.section { margin-bottom: 52px; scroll-margin-top: 54px; }
+.section h2 { font-size: 16px; color: #2c5f8a; border-bottom: 1.5px solid #cce;
+              padding-bottom: 6px; margin-bottom: 18px; }
+.section h3 { font-size: 14px; color: #333; margin: 28px 0 10px; }
+
+/* ── TOC ── */
+.toc { background: #f0f5fb; border-left: 4px solid #2c5f8a;
+       padding: 14px 18px; margin-bottom: 32px; border-radius: 3px; }
+.toc h3 { font-size: 12px; margin-bottom: 7px; color: #2c5f8a; }
+.toc ol { padding-left: 18px; }
+.toc li { margin-bottom: 2px; }
+.toc a  { color: #2c5f8a; text-decoration: none; font-size: 12px; }
+.toc a:hover { text-decoration: underline; }
+
+/* ── Stat grid ── */
+.stat-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.stat-box  { background: #f0f5fb; border-radius: 6px; padding: 12px 18px;
+             flex: 1; min-width: 130px; text-align: center; }
+.stat-box .val { font-size: 24px; font-weight: bold; color: #2c5f8a; }
+.stat-box .lbl { font-size: 11px; color: #666; margin-top: 3px; }
+
+/* ── Trend summary bar ── */
+.trend-bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden;
+             margin: 18px 0 8px; }
+.trend-seg { display: flex; align-items: center; justify-content: center;
+             font-size: 10px; font-weight: 600; color: white;
+             white-space: nowrap; overflow: hidden; padding: 0 6px; }
+.trend-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.trend-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.trend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── Figures ── */
+.fig-block { margin: 18px 0 30px; }
+.fig-block img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px;
+                 display: block; margin: 0 auto; }
+.fig-caption { font-size: 11px; color: #555; margin-top: 8px; line-height: 1.6; }
+.fig-caption strong { color: #333; }
+.skip-note { font-size: 11px; color: #aaa; font-style: italic; margin: 8px 0; }
+
+/* ── Run params ── */
+.run-params { background: #f7f9fc; border: 1px solid #dce4ef; border-radius: 5px;
+              padding: 14px 20px; margin-top: 18px; }
+.run-params h3 { font-size: 12px; color: #2c5f8a; margin-bottom: 10px;
+                 text-transform: uppercase; letter-spacing: .04em; }
+.run-params table { font-size: 11.5px; margin: 0; }
+.run-params th { background: none; color: #555; font-weight: 600;
+                 padding: 3px 14px 3px 0; width: 200px; }
+.run-params td { background: none; padding: 3px 0; border: none; color: #222; }
+.run-params tr { border: none; }
+.run-params code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+/* ── Methods ── */
+.methods { background: #fafafa; border: 1px solid #ddd; border-radius: 4px;
+           padding: 18px 22px; font-size: 12px; line-height: 1.7; color: #444; }
+.methods p { margin-bottom: 10px; }
+
+/* ── Footer ── */
+.footer { border-top: 1px solid #ddd; padding: 14px 50px;
+          font-size: 11px; color: #aaa; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>FastCCC Reference-Based Inference Report
+    <span class="badge">Reference Analysis</span>
+  </h1>
+  <div class="subtitle">
+    Query: <strong>{{ query_name }}</strong>
+    &nbsp;vs&nbsp;
+    Reference: <strong>{{ reference_name }}</strong>
+  </div>
+  <div class="meta">
+    {{ report_date }} &nbsp;|&nbsp; DB: {{ database_name }} &nbsp;|&nbsp; FastCCC v{{ version }}
+  </div>
+</div>
+
+<!-- NAV BAR -->
+<div class="nav-bar">
+  <a class="nav-btn" href="#summary">Summary</a>
+  <a class="nav-btn" href="#overview">Global Trends</a>
+  <a class="nav-btn" href="#heatmaps">Sender–Receiver</a>
+  <a class="nav-btn" href="#lr-pairs">L-R Pairs</a>
+  <a class="nav-btn" href="#cs-scatter">CS Scatter</a>
+  <a class="nav-btn" href="#pathways">Pathway Breakdown</a>
+  <a class="nav-btn" href="#methods">Methods</a>
+</div>
+
+<div class="content">
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#summary">Executive Summary</a></li>
+    <li><a href="#overview">Global CCC Trends (Figs A–B)</a></li>
+    <li><a href="#heatmaps">Sender–Receiver Heatmaps (Figs C–D)</a></li>
+    <li><a href="#lr-pairs">Top L-R Pair Dotplots (Figs E–F)</a></li>
+    <li><a href="#cs-scatter">Communication Score Scatter (Fig G)</a></li>
+    <li><a href="#pathways">Pathway Breakdown (Fig H)</a></li>
+    <li><a href="#methods">Methods &amp; Parameters</a></li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     1. EXECUTIVE SUMMARY
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="summary">
+  <h2>1. Executive Summary</h2>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="val">{{ '{:,}'.format(n_tested) }}</div>
+      <div class="lbl">Total interactions tested</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">{{ '{:,}'.format(n_significant) }}</div>
+      <div class="lbl">Significant in {{ query_name }}</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">{{ '{:,}'.format(n_in_reference) }}</div>
+      <div class="lbl">Matched in reference</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">{{ '{:,}'.format(n_lr_pairs) }}</div>
+      <div class="lbl">Unique L-R pairs</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">{{ '{:,}'.format(n_ct_pairs) }}</div>
+      <div class="lbl">Active cell-type pairs</div>
+    </div>
+  </div>
+
+  <!-- Trend proportion bar -->
+  {% set total_ref = trend_counts['Up'] + trend_counts['Both Sig'] + trend_counts['Down'] + trend_counts['Both NS'] %}
+  {% if total_ref > 0 %}
+  <div class="trend-bar">
+    {% for t in trend_order %}
+    {% set pct = (trend_counts[t] / total_ref * 100) | round(1) %}
+    <div class="trend-seg"
+         style="width: {{ pct }}%; background: {{ trend_colors[t] }}; {% if t == 'Both NS' %}color:#777;{% endif %}">
+      {% if pct > 6 %}{{ t }} {{ pct }}%{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="trend-legend">
+    {% for t in trend_order %}
+    <div class="trend-legend-item">
+      <div class="trend-swatch" style="background: {{ trend_colors[t] }};
+           {% if t == 'Both NS' %}border:1px solid #bbb;{% endif %}"></div>
+      <span><strong>{{ t }}</strong>: {{ '{:,}'.format(trend_counts[t]) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <p style="margin-top:16px; line-height:1.75; font-size:13px;">
+    FastCCC compared <em>{{ query_name }}</em> against a pre-built <em>{{ reference_name }}</em>
+    reference panel, testing <strong>{{ '{:,}'.format(n_tested) }}</strong> L-R interactions
+    across <strong>{{ '{:,}'.format(n_ct_pairs) }}</strong> cell-type pairs.
+    Of the <strong>{{ '{:,}'.format(n_in_reference) }}</strong> interactions matched to the reference:
+    <strong>{{ '{:,}'.format(trend_counts['Up']) }}</strong> were {{ query_name }}-specific (Up),
+    <strong>{{ '{:,}'.format(trend_counts['Both Sig']) }}</strong> were shared (Both Sig),
+    <strong>{{ '{:,}'.format(trend_counts['Down']) }}</strong> were {{ reference_name }}-specific (Down), and
+    <strong>{{ '{:,}'.format(trend_counts['Both NS']) }}</strong> were background (Both NS).
+  </p>
+
+  <div class="run-params">
+    <h3>Report Parameters</h3>
+    <table>
+      <tr><th>Query condition</th><td>{{ query_name }}</td></tr>
+      <tr><th>Reference panel</th><td>{{ reference_name }}</td></tr>
+      <tr><th>LRI database</th><td>{{ database_name }}</td></tr>
+      <tr><th>Report generated</th><td>{{ report_date }}</td></tr>
+      <tr><th>FastCCC version</th><td>{{ version }}</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     2. GLOBAL CCC TRENDS
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="overview">
+  <h2>2. Global CCC Trends</h2>
+
+  <h3>Fig A — Overall Trend Distribution</h3>
+  <div class="fig-block">
+    {% if figs.trend_dist[0] %}
+    <img src="data:image/png;base64,{{ figs.trend_dist[0] }}" alt="Fig A">
+    <p class="fig-caption">{{ figs.trend_dist[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.trend_dist[1] }}</p>
+    {% endif %}
+  </div>
+
+  <h3>Fig B — Per Cell-Type Pair Trend Breakdown</h3>
+  <div class="fig-block">
+    {% if figs.ct_breakdown[0] %}
+    <img src="data:image/png;base64,{{ figs.ct_breakdown[0] }}" alt="Fig B">
+    <p class="fig-caption">{{ figs.ct_breakdown[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.ct_breakdown[1] }}</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     3. SENDER–RECEIVER HEATMAPS
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="heatmaps">
+  <h2>3. Sender–Receiver Heatmaps</h2>
+
+  <h3>Fig C — {{ query_name }}-specific Interactions (Up)</h3>
+  <div class="fig-block">
+    {% if figs.heatmap_up[0] %}
+    <img src="data:image/png;base64,{{ figs.heatmap_up[0] }}" alt="Fig C">
+    <p class="fig-caption">{{ figs.heatmap_up[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.heatmap_up[1] }}</p>
+    {% endif %}
+  </div>
+
+  <h3>Fig D — {{ reference_name }}-specific Interactions (Down)</h3>
+  <div class="fig-block">
+    {% if figs.heatmap_down[0] %}
+    <img src="data:image/png;base64,{{ figs.heatmap_down[0] }}" alt="Fig D">
+    <p class="fig-caption">{{ figs.heatmap_down[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.heatmap_down[1] }}</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     4. TOP L-R PAIR DOTPLOTS
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="lr-pairs">
+  <h2>4. Top L-R Pair Dotplots</h2>
+
+  <h3>Fig E — Top {{ query_name }}-specific L-R Pairs (Up)</h3>
+  <div class="fig-block">
+    {% if figs.dotplot_up[0] %}
+    <img src="data:image/png;base64,{{ figs.dotplot_up[0] }}" alt="Fig E">
+    <p class="fig-caption">{{ figs.dotplot_up[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.dotplot_up[1] }}</p>
+    {% endif %}
+  </div>
+
+  <h3>Fig F — Top {{ reference_name }}-specific L-R Pairs (Down)</h3>
+  <div class="fig-block">
+    {% if figs.dotplot_down[0] %}
+    <img src="data:image/png;base64,{{ figs.dotplot_down[0] }}" alt="Fig F">
+    <p class="fig-caption">{{ figs.dotplot_down[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.dotplot_down[1] }}</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     5. CS SCATTER
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="cs-scatter">
+  <h2>5. Communication Score Scatter</h2>
+
+  <h3>Fig G — Query CS vs Reference Significance</h3>
+  <div class="fig-block">
+    {% if figs.cs_scatter[0] %}
+    <img src="data:image/png;base64,{{ figs.cs_scatter[0] }}" alt="Fig G">
+    <p class="fig-caption">{{ figs.cs_scatter[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.cs_scatter[1] }}</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     6. PATHWAY BREAKDOWN
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="pathways">
+  <h2>6. Pathway Breakdown</h2>
+
+  <h3>Fig H — Up vs Down Interactions by Pathway</h3>
+  <div class="fig-block">
+    {% if figs.pathway_breakdown[0] %}
+    <img src="data:image/png;base64,{{ figs.pathway_breakdown[0] }}" alt="Fig H">
+    <p class="fig-caption">{{ figs.pathway_breakdown[1] }}</p>
+    {% else %}
+    <p class="skip-note">{{ figs.pathway_breakdown[1] }}</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     7. METHODS
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="methods">
+  <h2>7. Methods &amp; Parameters</h2>
+  <div class="methods">
+    <p><strong>Reference panel construction.</strong>
+    The reference was built from <em>{{ reference_name }}</em> cells using
+    <code>build_reference_workflow</code>, which applies rank-based preprocessing
+    (<code>rank_preprocess</code>) and computes per-gene PMFs via FFT-based convolution
+    across all cell types. L-R pair null distributions are derived analytically without
+    permutation testing.</p>
+
+    <p><strong>Query inference.</strong>
+    The <em>{{ query_name }}</em> query dataset was digitised into the same rank space as the
+    reference using <code>infer_query_workflow</code>. Communication scores (CS) were computed
+    for each L-R × cell-type pair and compared against the reference null distribution
+    (adjusted by a housekeeping-gene scaling factor) to assign significance and trend labels.</p>
+
+    <p><strong>Trend categories.</strong>
+    <em>Up</em>: significant in {{ query_name }} but not {{ reference_name }} (query-specific enrichment).
+    <em>Down</em>: significant in {{ reference_name }} but not {{ query_name }} (reference-specific, lost in query).
+    <em>Both Sig</em>: significant in both (shared disease-relevant interaction).
+    <em>Both NS</em>: not significant in either (background).</p>
+
+    <p><strong>Visualisation.</strong>
+    All figures were generated with Matplotlib/Seaborn at {{ version }}.
+    Heatmaps show the top cell types by total interaction involvement.
+    Dotplots rank L-R pairs by total communication score.
+    The CS scatter jitters the binary reference-significance axis for readability.</p>
+  </div>
+</div>
+
+</div><!-- .content -->
+
+<div class="footer">
+  Generated by FastCCC v{{ version }} &nbsp;|&nbsp; {{ report_date }}
+  &nbsp;|&nbsp; Query: {{ query_name }} &nbsp;vs&nbsp; Reference: {{ reference_name }}
+</div>
+
+</div><!-- .page -->
+</body>
+</html>

@@ -12,6 +12,18 @@ from ..loader import CCCData
 from ..utils import wrap_labels
 
 
+def _cauchy_combine(pa: float, pb: float) -> float:
+    """Cauchy combination of two p-values (equal weights).
+
+    More powerful than min(p) * 2 and consistent with FastCCC's default
+    combination strategy across methods.
+    """
+    pa = max(float(pa), 1e-300)
+    pb = max(float(pb), 1e-300)
+    T = 0.5 * np.tan((0.5 - pa) * np.pi) + 0.5 * np.tan((0.5 - pb) * np.pi)
+    return float(np.clip(0.5 - np.arctan(T) / np.pi, 1e-300, 1.0))
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Helper: merge two conditions into a long DataFrame
 # ──────────────────────────────────────────────────────────────────────────────
@@ -59,7 +71,7 @@ def _build_diff_table(
             'sig_a': bool(sig_a.iat[ci, li]),
             'sig_b': bool(sig_b.iat[ci, li]),
             'log2fc': np.log2((cb + 1e-6) / (ca + 1e-6)),
-            'neg_log_p': -np.log10(min(pa, pb) + 1e-300),
+            'neg_log_p': -np.log10(_cauchy_combine(pa, pb)),
         })
 
     df = pd.DataFrame(rows)
@@ -269,8 +281,8 @@ def plot_diff_volcano(
         )
 
     ax.set_xlabel(f'log₂ FC (CS: {name_b} / {name_a})', fontsize=9)
-    ylabel = f'−log₁₀(min p-value)  [capped at {y_cap:.0f}]' if n_capped > 0 \
-             else '−log₁₀(minimum p-value)'
+    ylabel = f'−log₁₀(Cauchy p-value)  [capped at {y_cap:.0f}]' if n_capped > 0 \
+             else '−log₁₀(Cauchy combined p-value)'
     ax.set_ylabel(ylabel, fontsize=9)
     ax.set_title(f'Differential L-R Interactions — {name_b} vs. {name_a}', pad=10)
     ax.set_ylim(bottom=-y_cap * 0.03, top=y_cap * 1.08)
@@ -291,8 +303,9 @@ def plot_diff_volcano(
     caption = (
         f"Volcano plot of differential ligand–receptor interactions between "
         f"{name_b} and {name_a}. The x-axis shows log₂ fold-change in communication "
-        f"score (CS); the y-axis shows −log₁₀ of the minimum p-value across both conditions. "
-        f"Blue points (n={n_a:,}) are significant only in {name_a}; "
+        f"score (CS); the y-axis shows −log₁₀ of the Cauchy-combined p-value across both "
+        f"conditions (more powerful than min(p) and consistent with FastCCC's combination "
+        f"strategy). Blue points (n={n_a:,}) are significant only in {name_a}; "
         f"red points (n={n_b:,}) are significant only in {name_b}; "
         f"grey points (n={n_sh:,}) are shared between conditions.{cap_note} "
         f"The top {top_n_label} condition-specific interactions by significance are labelled."
@@ -371,5 +384,75 @@ def plot_diff_pathway_bar(
         f"{name_b} (red). Left panel: absolute interaction counts per pathway per condition. "
         f"Right panel: difference (Δ = {name_b} − {name_a}), with red bars indicating "
         f"pathways enriched in {name_b} and blue bars enriched in {name_a}."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 31 – L-R pair stability ranking
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_lr_stability(
+    data_a: CCCData, data_b: CCCData,
+    name_a: str = 'Condition A', name_b: str = 'Condition B',
+    pval_threshold: float = 0.05,
+    top_n: int = 30,
+) -> Tuple[plt.Figure, str]:
+    """Stacked bar: L-R pairs ranked by n cell-type pairs significant in both conditions."""
+    df = _build_diff_table(data_a, data_b, pval_threshold)
+    if df.empty or 'ligand' not in df.columns:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "LR stability (no annotation data available)."
+
+    df['lr_pair'] = df['ligand'].fillna('?') + ' → ' + df['receptor'].fillna('?')
+
+    agg_rows = []
+    for lr_pair, grp in df.groupby('lr_pair'):
+        agg_rows.append({
+            'lr_pair':  lr_pair,
+            'n_both':   int((grp['sig_a'] & grp['sig_b']).sum()),
+            'n_only_a': int((grp['sig_a'] & ~grp['sig_b']).sum()),
+            'n_only_b': int((~grp['sig_a'] & grp['sig_b']).sum()),
+        })
+
+    agg = pd.DataFrame(agg_rows)
+    agg = agg[agg[['n_both', 'n_only_a', 'n_only_b']].sum(axis=1) > 0]
+    agg = (agg.sort_values(['n_both', 'n_only_a', 'n_only_b'], ascending=False)
+              .head(top_n)
+              .sort_values('n_both', ascending=True))  # bottom-to-top for barh
+
+    if agg.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "LR stability: no data after filtering."
+
+    fig, ax = plt.subplots(figsize=(9, max(5, len(agg) * 0.38 + 1.5)))
+
+    ax.barh(range(len(agg)), agg['n_both'].values,
+            color='#3C5488', label=f'Both sig  ({name_a} & {name_b})',
+            edgecolor='white', lw=0.3)
+    ax.barh(range(len(agg)), agg['n_only_a'].values, left=agg['n_both'].values,
+            color='#4DBBD5', label=f'Only {name_a}', edgecolor='white', lw=0.3)
+    ax.barh(range(len(agg)), agg['n_only_b'].values,
+            left=(agg['n_both'] + agg['n_only_a']).values,
+            color='#E64B35', label=f'Only {name_b}', edgecolor='white', lw=0.3)
+
+    ax.set_yticks(range(len(agg)))
+    ax.set_yticklabels([wrap_labels([lr], 35)[0] for lr in agg['lr_pair']], fontsize=7)
+    ax.set_xlabel('Number of cell-type pairs', fontsize=9)
+    ax.set_title(f'L-R Pair Stability Across Conditions\n{name_a} vs. {name_b}', pad=10)
+    ax.spines['left'].set_visible(False)
+    ax.tick_params(axis='y', length=0)
+    ax.legend(loc='lower right', fontsize=8, frameon=True)
+    fig.tight_layout()
+
+    n_stable = int((agg['n_both'] > 0).sum())
+    caption = (
+        f"Stacked bar chart ranking the top {top_n} L-R pairs by the number of cell-type "
+        f"pairs in which they are significant in both conditions (dark blue = robust). "
+        f"Light blue = significant only in {name_a}; red = significant only in {name_b}. "
+        f"{n_stable} L-R pairs show stable activity in at least one shared cell-type pair, "
+        "representing condition-independent signalling channels."
     )
     return fig, caption

@@ -11,7 +11,7 @@ def combine_complex_distribution_df(set_distribution_df, complex_table, complex_
         x = [sub_x for sub_x in x if sub_x in set_distribution_df.columns]
         if len(x) == 0:
             # 如果出现这种情况，其实应该报错，前面数据处理应该排除这种情况。
-            return pd.Series(index=mean_pmf.index)
+            return pd.Series(index=set_distribution_df.index)
         return set_distribution_df.loc[:,x].apply(sub_func, axis=1)
 
     if not complex_table.empty:

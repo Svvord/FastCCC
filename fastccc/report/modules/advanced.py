@@ -230,7 +230,7 @@ def plot_lr_specificity(
 # ──────────────────────────────────────────────────────────────────────────────
 
 def plot_cs_violin(
-    data: CCCData, top_n: int = 12
+    data: CCCData, top_n: int = 25
 ) -> Tuple[plt.Figure, str]:
     sig = data.significant.copy()
     if sig.empty:
@@ -286,11 +286,166 @@ def plot_cs_violin(
     ax.set_xlim(-0.6, len(order) - 0.4)
     fig.tight_layout()
 
+    top_n_actual = len(order)
     caption = (
-        f"Violin plots of the communication score (CS) distribution for the top {top_n} "
-        "sender→receiver cell-type pairs, ordered by median CS (left = highest). "
-        "Red horizontal bars indicate the median. Individual data points are overlaid "
-        "(jittered) for pairs with ≤200 interactions, giving a full picture of the "
-        "score distribution shape and spread."
+        f"Violin plots of the communication score (CS) distribution for the top {top_n_actual} "
+        "sender→receiver cell-type pairs (up to {top_n} shown), ordered by median CS "
+        "(left = highest). Red horizontal bars indicate the median. Individual data points "
+        "are overlaid (jittered) for pairs with ≤200 interactions, giving a full picture "
+        "of the score distribution shape and spread."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 29 – L-R pair co-occurrence (Jaccard similarity heatmap)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_lr_cooccurrence(
+    data: CCCData, top_n_lr: int = 30
+) -> Tuple[plt.Figure, str]:
+    """Jaccard similarity of active-cell-type-pair sets for top L-R pairs, clustered."""
+    sig = data.significant.copy()
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "LR co-occurrence (no data)."
+
+    sig['lr_pair'] = sig['ligand'] + ' → ' + sig['receptor']
+    sig['ct_pair'] = sig['sender_celltype'] + '|' + sig['receiver_celltype']
+
+    top_lr = sig['lr_pair'].value_counts().head(top_n_lr).index.tolist()
+    sub = sig[sig['lr_pair'].isin(top_lr)]
+
+    # Binary matrix: LR pair × cell-type pair
+    pivot = (
+        sub.groupby(['lr_pair', 'ct_pair'])
+           .size()
+           .unstack(fill_value=0)
+           .reindex(index=top_lr)
+           .fillna(0)
+           .astype(bool)
+    )
+
+    n = len(top_lr)
+    arr = pivot.values
+    jaccard = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            inter = int((arr[i] & arr[j]).sum())
+            union = int((arr[i] | arr[j]).sum())
+            v = inter / union if union > 0 else 0.0
+            jaccard[i, j] = jaccard[j, i] = v
+
+    jac_df = pd.DataFrame(jaccard, index=top_lr, columns=top_lr)
+
+    try:
+        from scipy.cluster.hierarchy import linkage, dendrogram
+        from scipy.spatial.distance import squareform
+        dist = np.clip(1 - jaccard, 0, None)
+        np.fill_diagonal(dist, 0)
+        link = linkage(squareform(dist), method='average')
+        order = dendrogram(link, no_plot=True)['leaves']
+        jac_df = jac_df.iloc[order, order]
+    except Exception:
+        pass
+
+    sz = max(6, n * 0.35 + 2)
+    fig, ax = plt.subplots(figsize=(sz, sz * 0.9))
+
+    sns.heatmap(
+        jac_df, ax=ax, cmap='Blues', vmin=0, vmax=1,
+        linewidths=0.2, linecolor='#f0f0f0',
+        xticklabels=True, yticklabels=True,
+        cbar_kws={'label': 'Jaccard similarity', 'shrink': 0.6},
+    )
+    ax.set_xticklabels(
+        [wrap_labels([x], 30)[0] for x in jac_df.columns],
+        rotation=60, ha='right', fontsize=6.5,
+    )
+    ax.set_yticklabels(
+        [wrap_labels([y], 30)[0] for y in jac_df.index],
+        rotation=0, fontsize=6.5,
+    )
+    ax.set_title(f'L-R Pair Co-occurrence (Jaccard Similarity)\n{data.sample_name}', pad=10)
+    fig.tight_layout()
+
+    caption = (
+        f"Pairwise Jaccard similarity of the top {top_n_lr} L-R pairs based on the sets of "
+        "cell-type pairs in which each interaction is significant. Pairs clustered together "
+        "(high Jaccard, dark blue) tend to co-activate in the same communication contexts, "
+        "suggesting shared regulatory programmes or pathway redundancy. Rows and columns are "
+        "sorted by hierarchical clustering (average linkage on 1 − Jaccard)."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 30 – Pathway crosstalk heatmap
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_pathway_crosstalk(
+    data: CCCData, top_n: int = 20
+) -> Tuple[plt.Figure, str]:
+    """Symmetric heatmap: number of cell-type pairs where both pathways are co-active."""
+    sig = data.significant.copy()
+    if sig.empty or 'classification' not in sig.columns:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Pathway crosstalk (no data)."
+
+    sig['ct_pair'] = sig['sender_celltype'] + '|' + sig['receiver_celltype']
+    top_paths = sig['classification'].value_counts().head(top_n).index.tolist()
+    sub = sig[sig['classification'].isin(top_paths)]
+
+    ct_path = sub.groupby('ct_pair')['classification'].apply(set)
+
+    n = len(top_paths)
+    mat = np.zeros((n, n), dtype=int)
+    for i, pa in enumerate(top_paths):
+        for j, pb in enumerate(top_paths):
+            if i > j:
+                mat[i, j] = mat[j, i]
+                continue
+            mat[i, j] = sum(1 for s in ct_path if pa in s and pb in s)
+
+    crosstalk = pd.DataFrame(mat, index=top_paths, columns=top_paths)
+
+    try:
+        from scipy.cluster.hierarchy import linkage, dendrogram
+        from scipy.spatial.distance import pdist
+        link = linkage(pdist(mat.astype(float), metric='euclidean'), method='average')
+        order = dendrogram(link, no_plot=True)['leaves']
+        crosstalk = crosstalk.iloc[order, order]
+    except Exception:
+        pass
+
+    sz = max(6, n * 0.45 + 2)
+    fig, ax = plt.subplots(figsize=(sz, sz * 0.85))
+
+    mask = np.eye(len(crosstalk), dtype=bool)
+    sns.heatmap(
+        crosstalk, ax=ax, cmap='YlOrRd', mask=mask,
+        linewidths=0.3, linecolor='#eeeeee',
+        cbar_kws={'label': 'Shared cell-type pairs', 'shrink': 0.6},
+        annot=True, fmt='d', annot_kws={'size': 6},
+    )
+    ax.set_xticklabels(
+        [wrap_labels([x], 28)[0] for x in crosstalk.columns],
+        rotation=55, ha='right', fontsize=7,
+    )
+    ax.set_yticklabels(
+        [wrap_labels([y], 28)[0] for y in crosstalk.index],
+        rotation=0, fontsize=7,
+    )
+    ax.set_title(f'Pathway Crosstalk — Co-active Cell-Type Pairs\n{data.sample_name}', pad=10)
+    fig.tight_layout()
+
+    caption = (
+        f"Symmetric heatmap of pathway crosstalk among the top {top_n} classifications. "
+        "Each cell counts the sender–receiver cell-type pairs in which both pathways have "
+        "at least one significant L-R interaction simultaneously, revealing which signalling "
+        "programmes tend to co-activate in the same communication context. The diagonal is "
+        "masked (self-overlap). Rows/columns are sorted by hierarchical clustering."
     )
     return fig, caption

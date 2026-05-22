@@ -31,6 +31,7 @@ def plot_io_scatter(
 
     fig, ax = plt.subplots(figsize=(7, 6))
 
+    texts = []
     for i, c in enumerate(ct):
         ax.scatter(
             outgoing[c], incoming[c],
@@ -38,11 +39,19 @@ def plot_io_scatter(
             color=colors_dict.get(c, '#999999'),
             alpha=0.85, edgecolors='white', lw=0.5, zorder=3,
         )
-        ax.annotate(
-            c, (outgoing[c], incoming[c]),
-            textcoords='offset points', xytext=(5, 3),
-            fontsize=7, ha='left',
+        texts.append(ax.text(outgoing[c], incoming[c], c, fontsize=7))
+
+    try:
+        from adjustText import adjust_text
+        adjust_text(
+            texts, ax=ax,
+            expand=(1.2, 1.6),
+            arrowprops=dict(arrowstyle='-', color='#aaaaaa', lw=0.5),
         )
+    except ImportError:
+        for t in texts:
+            x, y = t.get_position()
+            t.set_position((x + max_val * 0.015, y + max_val * 0.015))
 
     # Diagonal reference line
     max_val = max(outgoing.max(), incoming.max()) * 1.1
@@ -188,5 +197,113 @@ def plot_interaction_flow(
         f"{top_n} sender cell types, broken down by receiver cell type. Each colour segment "
         "corresponds to a distinct receiver, revealing the directionality and diversity of "
         "cell-cell communication from each major sender."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 25 – Receiver pathway specificity heatmap (mirror of Fig 12)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_receiver_pathway_heatmap(
+    data: CCCData, top_n_pathways: int = 20, top_n_ct: int = 15
+) -> Tuple[plt.Figure, str]:
+    sig = data.significant.copy()
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Receiver pathway heatmap (no data)."
+
+    top_ct   = sig['receiver_celltype'].value_counts().head(top_n_ct).index.tolist()
+    top_path = sig['classification'].value_counts().head(top_n_pathways).index.tolist()
+
+    sub = sig[sig['receiver_celltype'].isin(top_ct) & sig['classification'].isin(top_path)]
+    pivot = sub.pivot_table(
+        index='classification', columns='receiver_celltype',
+        values='p-value', aggfunc='count',
+    ).reindex(index=top_path, columns=top_ct, fill_value=0)
+    pivot = pivot.loc[pivot.sum(axis=1) > 0, pivot.sum(axis=0) > 0]
+
+    row_max = pivot.max(axis=1).replace(0, 1)
+    pivot_norm = pivot.div(row_max, axis=0)
+
+    n_r, n_c = pivot_norm.shape
+    fig, ax = plt.subplots(figsize=(max(6, n_c * 0.6 + 2.5), max(4, n_r * 0.4 + 1.5)))
+
+    sns.heatmap(
+        pivot_norm, ax=ax,
+        cmap='Oranges',
+        linewidths=0.3, linecolor='#eeeeee',
+        cbar_kws={'label': 'Row-normalised interaction count', 'shrink': 0.6},
+        xticklabels=True, yticklabels=True,
+        annot=pivot.values if n_r * n_c <= 200 else False,
+        fmt='.0f', annot_kws={'size': 6},
+    )
+    ax.set_xticklabels(
+        [wrap_labels([x], 22)[0] for x in pivot_norm.columns],
+        rotation=45, ha='right', fontsize=8,
+    )
+    ax.set_yticklabels(
+        [wrap_labels([y], 40)[0] for y in pivot_norm.index],
+        rotation=0, fontsize=8,
+    )
+    ax.set_xlabel('Receiver cell type', fontsize=9)
+    ax.set_ylabel('Pathway classification', fontsize=9)
+    ax.set_title(f'Receiver Cell Type Pathway Specificity\n{data.sample_name}', pad=10)
+    fig.tight_layout()
+
+    caption = (
+        f"Row-normalised heatmap of the top {top_n_pathways} pathway classifications across the "
+        f"top {top_n_ct} receiver cell types (mirror of Fig 12 from the receiver perspective). "
+        "Values are normalised per pathway so that 1.0 = the receiver with the highest count, "
+        "revealing which pathways each receiver predominantly accepts signals through."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 26 – Incoming interaction flow (mirror of Fig 13)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_incoming_flow(
+    data: CCCData, colors_dict: Dict, top_n: int = 10
+) -> Tuple[plt.Figure, str]:
+    """Stacked bar of incoming interaction counts per receiver, broken down by sender."""
+    mat = data.counts_matrix
+
+    top_receivers = mat.sum(axis=0).sort_values(ascending=False).head(top_n).index.tolist()
+    sub_mat = mat[top_receivers]
+    top_senders = sub_mat.sum(axis=1).sort_values(ascending=False).head(top_n).index.tolist()
+    sub_mat = sub_mat.loc[top_senders]
+
+    fig, ax = plt.subplots(figsize=(10, max(4, len(top_receivers) * 0.5 + 1.5)))
+
+    bottoms = np.zeros(len(top_receivers))
+    for snd in top_senders:
+        vals = sub_mat.loc[snd].values.astype(float)
+        ax.barh(
+            range(len(top_receivers)), vals, left=bottoms,
+            color=colors_dict.get(snd, '#aaaaaa'),
+            label=snd, edgecolor='white', lw=0.4,
+        )
+        bottoms += vals
+
+    ax.set_yticks(range(len(top_receivers)))
+    ax.set_yticklabels(wrap_labels(top_receivers), fontsize=8)
+    ax.set_xlabel('Number of significant incoming interactions', fontsize=9)
+    ax.set_title(f'Incoming Interaction Flow — Top Receivers\n{data.sample_name}', pad=10)
+    ax.spines['left'].set_visible(False)
+    ax.tick_params(axis='y', length=0)
+    ax.legend(
+        title='Sender', loc='upper right',
+        bbox_to_anchor=(1.01, 1), fontsize=7, ncol=1 + len(top_senders) // 12,
+    )
+    fig.tight_layout()
+
+    caption = (
+        f"Stacked horizontal bar chart showing the incoming interaction counts for the top "
+        f"{top_n} receiver cell types, broken down by sender cell type (mirror of Fig 13). "
+        "Each colour segment represents a distinct sender, revealing which sources drive "
+        "signalling into each major receiver."
     )
     return fig, caption

@@ -35,8 +35,14 @@ def plot_lr_dotplot(
     sig['lr_pair']   = sig['ligand'] + ' → ' + sig['receptor']
     sig['ct_pair']   = sig['sender_celltype'] + '\n→ ' + sig['receiver_celltype']
 
-    # Choose top L-R pairs by frequency
-    top_lr = sig['lr_pair'].value_counts().head(top_n).index.tolist()
+    # Choose top L-R pairs: rank by sum of -log10(p) across all ct_pairs so
+    # that both frequent AND highly significant pairs score well.
+    lr_score = (
+        sig.groupby('lr_pair')['p-value']
+           .apply(lambda s: (-np.log10(s.clip(1e-10))).sum())
+           .sort_values(ascending=False)
+    )
+    top_lr = lr_score.head(top_n).index.tolist()
     # Choose top cell-type pairs by total interactions
     top_ct = sig['ct_pair'].value_counts().head(max_pairs).index.tolist()
 
@@ -108,9 +114,10 @@ def plot_lr_dotplot(
     fig.tight_layout()
 
     caption = (
-        f"Dot plot of the top {top_n} most frequently detected ligand–receptor pairs across "
-        f"the top {max_pairs} cell-type pairs. Dot colour encodes −log₁₀(p-value) and dot size "
-        "encodes the communication score (CS)."
+        f"Dot plot of the top {top_n} ligand–receptor pairs (ranked by cumulative "
+        f"−log₁₀(p-value) across all cell-type pairs) across the top {max_pairs} "
+        "cell-type pairs. Dot colour encodes −log₁₀(p-value) and dot size encodes the "
+        "communication score (CS)."
     )
     return fig, caption
 

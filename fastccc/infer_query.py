@@ -127,7 +127,6 @@ def get_celltype_mapping_dict(celltype_mapping_dict):
                 logger.error(f"The file '{celltype_mapping_dict}' is not a valid JSON file.")
                 logger.info("Reference cell types label will be used directly.")
                 return None
-            return "The variable is a string."
         case dict():
             logger.info("The variable celltype_mapping_dict is used.")
             return celltype_mapping_dict
@@ -399,9 +398,9 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ref_perc = ref_percents_analysis.loc[index, col] if ref_flag else np.nan
         ref_ligand_perc = ref_L_perc.loc[index, col] if ref_flag else np.nan
         ref_receptor_perc = ref_R_perc.loc[index, col] if ref_flag else np.nan
-        ligand_low = np.max(ref_p1.loc[index, col] * (1-1/k*1.96), 0) if ref_flag else np.nan
+        ligand_low = np.maximum(ref_p1.loc[index, col] * (1-1/k*1.96), 0) if ref_flag else np.nan
         ligand_high = ref_p1.loc[index, col] * (1+1/k*1.96) if ref_flag else np.nan
-        receptor_low = np.max(ref_p2.loc[index, col], 0) * (1-1/k*1.96) if ref_flag else np.nan
+        receptor_low = np.maximum(ref_p2.loc[index, col] * (1-1/k*1.96), 0) if ref_flag else np.nan
         receptor_high = ref_p2.loc[index, col] * (1+1/k*1.96) if ref_flag else np.nan
         ref_sig = (ref_pvals.loc[index, col] < 0.05) if ref_flag else np.nan # 参考是否显著
         ligand_range = f"{ligand_low}-{ligand_high}" if ref_flag else np.nan
@@ -508,9 +507,9 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         ligand_IS = p1.loc[index, col]
         receptor_IS = p2.loc[index, col]
 
-        ligand_low = np.max(ref_p1.loc[index, col] * (1-1/k*1.96), 0)
+        ligand_low = np.maximum(ref_p1.loc[index, col] * (1-1/k*1.96), 0)
         ligand_high = ref_p1.loc[index, col] * (1+1/k*1.96)
-        receptor_low = np.max(ref_p2.loc[index, col], 0) * (1-1/k*1.96)
+        receptor_low = np.maximum(ref_p2.loc[index, col] * (1-1/k*1.96), 0)
         receptor_high = ref_p2.loc[index, col] * (1+1/k*1.96)
         ligand_range = f"{ligand_low}-{ligand_high}"
         receptor_range = f"{receptor_low}-{receptor_high}"

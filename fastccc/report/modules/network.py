@@ -40,7 +40,13 @@ def plot_network_centrality(
     in_deg  = dict(G.in_degree(weight='weight'))
     betw    = nx.betweenness_centrality(G, weight='weight', normalized=True)
 
-    pos = nx.spring_layout(G, weight='weight', seed=42, k=2.5 / max(1, np.sqrt(len(ct))))
+    if len(ct) > 15:
+        try:
+            pos = nx.kamada_kawai_layout(G, weight=None)
+        except Exception:
+            pos = nx.spring_layout(G, weight='weight', seed=42, k=2.5 / max(1, np.sqrt(len(ct))))
+    else:
+        pos = nx.spring_layout(G, weight='weight', seed=42, k=2.5 / max(1, np.sqrt(len(ct))))
 
     fig, ax = plt.subplots(figsize=(10, 9))
 
@@ -442,5 +448,189 @@ def plot_bipartite_lr(
         f"{top_n_receptor} receptors (right) by significant L-R pairings. Node size "
         "reflects interaction frequency. Ligand nodes are coloured by their dominant "
         "sender cell type; edges are weighted by pairwise interaction count."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 27 – Pairwise communication asymmetry scatter
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_communication_asymmetry(
+    data: CCCData, colors_dict: Dict
+) -> Tuple[plt.Figure, str]:
+    """Scatter: x = total bidirectional CS, y = asymmetry index (-1 to +1)."""
+    mat = data.strength_matrix
+    ct  = data.celltypes
+
+    rows = []
+    for i, a in enumerate(ct):
+        for j, b in enumerate(ct):
+            if j <= i:
+                continue
+            cs_ab = float(mat.loc[a, b])
+            cs_ba = float(mat.loc[b, a])
+            total = cs_ab + cs_ba
+            if total == 0:
+                continue
+            rows.append({
+                'pair': f'{a} ↔ {b}',
+                'a': a, 'b': b,
+                'total': total,
+                'asym': (cs_ab - cs_ba) / total,
+            })
+
+    if not rows:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Asymmetry scatter (no bidirectional pairs found)."
+
+    df = pd.DataFrame(rows)
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    sc = ax.scatter(
+        df['total'], df['asym'],
+        c=df['asym'].abs(), cmap='RdYlGn_r',
+        s=40, alpha=0.75, edgecolors='white', lw=0.4, vmin=0, vmax=1,
+    )
+
+    top_asym = df.reindex(df['asym'].abs().sort_values(ascending=False).index).head(10)
+    try:
+        from adjustText import adjust_text
+        texts = [ax.text(r['total'], r['asym'], r['pair'], fontsize=6)
+                 for _, r in top_asym.iterrows()]
+        adjust_text(texts, ax=ax, expand=(1.2, 1.5),
+                    arrowprops=dict(arrowstyle='-', color='#aaaaaa', lw=0.5))
+    except ImportError:
+        for _, r in top_asym.iterrows():
+            ax.annotate(r['pair'], (r['total'], r['asym']), fontsize=6,
+                        xytext=(4, 2), textcoords='offset points')
+
+    ax.axhline(0,    color='#888', lw=0.9, ls='--')
+    ax.axhline( 0.5, color='#ddd', lw=0.5, ls=':')
+    ax.axhline(-0.5, color='#ddd', lw=0.5, ls=':')
+
+    cb = fig.colorbar(sc, ax=ax, shrink=0.65, pad=0.02)
+    cb.set_label('|Asymmetry index|', fontsize=8)
+
+    ax.text(0.02, 0.97, '▲ A→B dominant', transform=ax.transAxes,
+            ha='left', va='top', fontsize=7, color='#888', style='italic')
+    ax.text(0.02, 0.03, '▼ B→A dominant', transform=ax.transAxes,
+            ha='left', va='bottom', fontsize=7, color='#888', style='italic')
+
+    ax.set_xlabel('Total bidirectional CS  (A→B + B→A)', fontsize=9)
+    ax.set_ylabel('Asymmetry index  [(A→B) − (B→A)] / total', fontsize=9)
+    ax.set_title(f'Pairwise Communication Asymmetry\n{data.sample_name}', pad=10)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    fig.tight_layout()
+
+    n_sym  = int((df['asym'].abs() < 0.2).sum())
+    n_asym = int((df['asym'].abs() > 0.5).sum())
+    caption = (
+        "Scatter plot of pairwise communication asymmetry for all cell-type pairs with "
+        "bidirectional interactions. x-axis = total CS (A→B + B→A); y-axis = asymmetry "
+        "index = (CS_A→B − CS_B→A) / total, ranging from −1 (fully B→A) to +1 (fully A→B). "
+        f"Colour encodes absolute asymmetry. {n_sym} pairs show reciprocal signalling "
+        f"(|index| < 0.2); {n_asym} show strongly directional communication (|index| > 0.5). "
+        "The 10 most asymmetric pairs are labelled."
+    )
+    return fig, caption
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fig 28 – Communication network with community detection
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_network_communities(
+    data: CCCData, colors_dict: Dict
+) -> Tuple[plt.Figure, str]:
+    """Undirected communication network coloured by greedy modularity communities."""
+    mat = data.counts_matrix
+    ct  = data.celltypes
+
+    G = nx.Graph()
+    G.add_nodes_from(ct)
+    for c1 in ct:
+        for c2 in ct:
+            if c1 >= c2:
+                continue
+            w = float(mat.loc[c1, c2] + mat.loc[c2, c1])
+            if w > 0:
+                G.add_edge(c1, c2, weight=w)
+
+    if G.number_of_edges() == 0:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, 'No interactions', ha='center', va='center', transform=ax.transAxes)
+        ax.axis('off')
+        return fig, "Community network (no data)."
+
+    try:
+        communities = sorted(
+            nx.community.greedy_modularity_communities(G, weight='weight'),
+            key=len, reverse=True,
+        )
+    except AttributeError:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, 'Community detection requires NetworkX ≥ 2.4',
+                ha='center', va='center', transform=ax.transAxes)
+        ax.axis('off')
+        return fig, "Community detection not available (NetworkX < 2.4)."
+
+    node_comm = {node: ci for ci, comm in enumerate(communities) for node in comm}
+    palette   = plt.cm.tab10.colors
+
+    if len(ct) > 15:
+        try:
+            pos = nx.kamada_kawai_layout(G, weight=None)
+        except Exception:
+            pos = nx.spring_layout(G, weight='weight', seed=42)
+    else:
+        pos = nx.spring_layout(G, weight='weight', seed=42, k=2.5 / max(1, np.sqrt(len(ct))))
+
+    fig, ax = plt.subplots(figsize=(11, 9))
+
+    edges = list(G.edges(data=True))
+    max_ew = max(d['weight'] for _, _, d in edges) if edges else 1
+    for u, v, d in edges:
+        xs, ys = pos[u]
+        xe, ye = pos[v]
+        ax.plot([xs, xe], [ys, ye], color='#cccccc',
+                lw=0.4 + 3.0 * d['weight'] / max_ew, alpha=0.6, zorder=1)
+
+    total_io = mat.sum(axis=1) + mat.sum(axis=0)
+    max_total = float(total_io.max()) or 1
+    for node in G.nodes():
+        x, y   = pos[node]
+        color  = palette[node_comm[node] % len(palette)]
+        r      = 0.018 + 0.045 * float(total_io[node]) / max_total
+        ax.add_patch(plt.Circle((x, y), r, color=color, ec='white', lw=1.0, zorder=3, alpha=0.9))
+        ax.text(x, y + r + 0.012, wrap_labels([node], 18)[0],
+                ha='center', va='bottom', fontsize=6.5, zorder=4)
+
+    for ci, comm in enumerate(communities):
+        ax.scatter([], [], c=[palette[ci % len(palette)]], s=60,
+                   label=f'Community {ci+1}  (n={len(comm)})')
+    ax.legend(loc='upper right', fontsize=7, frameon=True, framealpha=0.9,
+              title='Communities', title_fontsize=7)
+
+    ax.set_xlim(-1.4, 1.4)
+    ax.set_ylim(-1.4, 1.4)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_title(
+        f'Cell–Cell Communication Network — Community Structure\n{data.sample_name}\n'
+        '(Greedy modularity; node size = total interactions)',
+        pad=10,
+    )
+    fig.tight_layout()
+
+    n_comm = len(communities)
+    caption = (
+        f"Undirected communication network with {n_comm} communities detected by greedy "
+        "modularity maximisation (Newman, 2004). Node colour indicates community membership; "
+        "node size reflects total interaction count (incoming + outgoing). Edge width is "
+        "proportional to the total bidirectional interaction count. Cell types in the same "
+        "community preferentially communicate with each other."
     )
     return fig, caption

@@ -136,6 +136,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <li><a href="#{{ tab.id }}-celltype">Cell Type Profiles</a></li>
     <li><a href="#{{ tab.id }}-network">Network Analyses</a></li>
     <li><a href="#{{ tab.id }}-advanced">Advanced L-R Analyses</a></li>
+    <li><a href="#{{ tab.id }}-cooccurrence">Co-occurrence &amp; Crosstalk</a></li>
   </ol>
 </div>
 
@@ -282,6 +283,18 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <img src="data:image/png;base64,{{ f.flow[0] }}" alt="Interaction Flow">
     <div class="fig-caption"><strong>Figure 13.</strong> {{ f.flow[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 13 not generated.</p>{% endif %}
+
+  <h3>Figure 25 — Receiver Pathway Specificity</h3>
+  {% if f.receiver_pathway[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.receiver_pathway[0] }}" alt="Receiver Pathway">
+    <div class="fig-caption"><strong>Figure 25.</strong> {{ f.receiver_pathway[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 25 not generated.</p>{% endif %}
+
+  <h3>Figure 26 — Incoming Interaction Flow</h3>
+  {% if f.incoming_flow[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.incoming_flow[0] }}" alt="Incoming Flow">
+    <div class="fig-caption"><strong>Figure 26.</strong> {{ f.incoming_flow[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 26 not generated.</p>{% endif %}
 </div>
 
 <!-- 6. NETWORK -->
@@ -311,6 +324,18 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <img src="data:image/png;base64,{{ f.bipartite[0] }}" alt="Bipartite">
     <div class="fig-caption"><strong>Figure 17.</strong> {{ f.bipartite[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 17 not generated.</p>{% endif %}
+
+  <h3>Figure 27 — Pairwise Communication Asymmetry</h3>
+  {% if f.asymmetry[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.asymmetry[0] }}" alt="Asymmetry">
+    <div class="fig-caption"><strong>Figure 27.</strong> {{ f.asymmetry[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 27 not generated.</p>{% endif %}
+
+  <h3>Figure 28 — Communication Network Communities</h3>
+  {% if f.communities[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.communities[0] }}" alt="Communities">
+    <div class="fig-caption"><strong>Figure 28.</strong> {{ f.communities[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 28 not generated.</p>{% endif %}
 </div>
 
 <!-- 7. ADVANCED -->
@@ -340,6 +365,23 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <img src="data:image/png;base64,{{ f.cs_violin[0] }}" alt="CS Violin">
     <div class="fig-caption"><strong>Figure 21.</strong> {{ f.cs_violin[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 21 not generated.</p>{% endif %}
+</div>
+
+<!-- 8. CO-OCCURRENCE & CROSSTALK -->
+<div class="section" id="{{ tab.id }}-cooccurrence">
+  <h2>8. Co-occurrence &amp; Pathway Crosstalk</h2>
+
+  <h3>Figure 29 — L-R Pair Co-occurrence (Jaccard Similarity)</h3>
+  {% if f.lr_cooccurrence[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.lr_cooccurrence[0] }}" alt="LR Co-occurrence">
+    <div class="fig-caption"><strong>Figure 29.</strong> {{ f.lr_cooccurrence[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 29 not generated.</p>{% endif %}
+
+  <h3>Figure 30 — Pathway Crosstalk Heatmap</h3>
+  {% if f.pathway_crosstalk[0] %}<div class="fig-block">
+    <img src="data:image/png;base64,{{ f.pathway_crosstalk[0] }}" alt="Pathway Crosstalk">
+    <div class="fig-caption"><strong>Figure 30.</strong> {{ f.pathway_crosstalk[1] }}</div>
+  </div>{% else %}<p class="skip-note">Figure 30 not generated.</p>{% endif %}
 </div>
 {% endmacro %}
 
@@ -374,6 +416,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
       <li><a href="#diff-heatmap">Differential Interaction Heatmap</a></li>
       <li><a href="#diff-volcano">Differential Volcano Plot</a></li>
       <li><a href="#diff-pathway">Differential Pathway Activity</a></li>
+      <li><a href="#diff-stability">L-R Pair Stability Ranking</a></li>
     </ol>
   </div>
 
@@ -401,6 +444,14 @@ tr:nth-child(even) td { background: #f8f9fb; }
       <img src="data:image/png;base64,{{ diff_figs.pathway[0] }}" alt="Diff Pathway">
       <div class="fig-caption"><strong>Figure 24.</strong> {{ diff_figs.pathway[1] }}</div>
     </div>{% else %}<p class="skip-note">Figure 24 not generated.</p>{% endif %}
+  </div>
+
+  <div class="section" id="diff-stability">
+    <h3>Figure 31 — L-R Pair Stability Ranking</h3>
+    {% if diff_figs.stability[0] %}<div class="fig-block">
+      <img src="data:image/png;base64,{{ diff_figs.stability[0] }}" alt="LR Stability">
+      <div class="fig-caption"><strong>Figure 31.</strong> {{ diff_figs.stability[1] }}</div>
+    </div>{% else %}<p class="skip-note">Figure 31 not generated.</p>{% endif %}
   </div>
 </div>
 {% endif %}

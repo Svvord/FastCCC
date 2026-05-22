@@ -90,10 +90,8 @@ def plot_ligand_ora(
     top_n: int = 20,
 ) -> Tuple[plt.Figure, str]:
     sig = data.significant
-    all_ligands = _get_all_genes(data.database_path, role='ligand')
-
     sig_ligands = _explode_genes(sig['ligand'].dropna().unique().tolist())
-    background  = _explode_genes(all_ligands)
+    background  = _explode_genes(_get_tested_genes(data, role='ligand'))
 
     enr = _run_ora(sig_ligands, background, list(gene_sets))
 
@@ -112,7 +110,7 @@ def plot_ligand_ora(
     caption = (
         f"Over-representation analysis (ORA) of the {len(sig_ligands)} unique ligand genes "
         f"detected in significant interactions, tested against {', '.join(gene_sets)} gene sets "
-        f"using all database ligands as background (n={len(background)}). "
+        f"using expression-filtered database ligands as background (n={len(background)}). "
         "The dashed line marks the significance threshold (p_adj = 0.05)."
     )
     return fig, caption
@@ -128,10 +126,8 @@ def plot_receptor_ora(
     top_n: int = 20,
 ) -> Tuple[plt.Figure, str]:
     sig = data.significant
-    all_receptors = _get_all_genes(data.database_path, role='receptor')
-
     sig_receptors = _explode_genes(sig['receptor'].dropna().unique().tolist())
-    background    = _explode_genes(all_receptors)
+    background    = _explode_genes(_get_tested_genes(data, role='receptor'))
 
     enr = _run_ora(sig_receptors, background, list(gene_sets))
 
@@ -150,7 +146,7 @@ def plot_receptor_ora(
     caption = (
         f"Over-representation analysis (ORA) of the {len(sig_receptors)} unique receptor genes "
         f"detected in significant interactions, tested against {', '.join(gene_sets)} gene sets "
-        f"using all database receptors as background (n={len(background)}). "
+        f"using expression-filtered database receptors as background (n={len(background)}). "
         "The dashed line marks the significance threshold (p_adj = 0.05)."
     )
     return fig, caption
@@ -225,16 +221,19 @@ def plot_tf_heatmap(
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _get_all_genes(database_path: str, role: str) -> List[str]:
-    """Extract all ligand or receptor gene symbols from the database."""
+def _load_db_tables(database_path: str):
+    """Return (itbl, id2sym, comp_map) for the given database path."""
     import os
     itbl = pd.read_csv(os.path.join(database_path, 'interaction_table.csv'))
     gtbl = pd.read_csv(os.path.join(database_path, 'gene_table.csv'))
     id2sym = gtbl.set_index('protein_id')['hgnc_symbol'].to_dict()
-
-    # complex → gene names
     comp_comp = pd.read_csv(os.path.join(database_path, 'complex_composition_table.csv'))
     comp_map: dict = comp_comp.groupby('complex_multidata_id')['protein_multidata_id'].apply(list).to_dict()
+    return itbl, id2sym, comp_map
+
+
+def _resolve_genes(itbl: pd.DataFrame, id2sym: dict, comp_map: dict, role: str) -> List[str]:
+    col = 'multidata_1_id' if role == 'ligand' else 'multidata_2_id'
 
     def resolve(mid):
         if mid in id2sym:
@@ -243,11 +242,28 @@ def _get_all_genes(database_path: str, role: str) -> List[str]:
             return [id2sym[p] for p in comp_map[mid] if p in id2sym]
         return []
 
-    col = 'multidata_1_id' if role == 'ligand' else 'multidata_2_id'
     genes = []
     for mid in itbl[col].unique():
         genes.extend(resolve(mid))
     return list(set(genes))
+
+
+def _get_all_genes(database_path: str, role: str) -> List[str]:
+    """Extract all ligand or receptor gene symbols from the database."""
+    itbl, id2sym, comp_map = _load_db_tables(database_path)
+    return _resolve_genes(itbl, id2sym, comp_map, role)
+
+
+def _get_tested_genes(data, role: str) -> List[str]:
+    """Return gene symbols for LRI interactions actually tested in the analysis.
+
+    Uses data.pvals.columns (the set of tested LRI_IDs) as a filter so the ORA
+    background reflects the expression-filtered universe rather than the full DB.
+    """
+    itbl, id2sym, comp_map = _load_db_tables(data.database_path)
+    tested_ids = set(data.pvals.columns)
+    itbl_tested = itbl[itbl['id_cp_interaction'].isin(tested_ids)]
+    return _resolve_genes(itbl_tested, id2sym, comp_map, role)
 
 
 def _explode_genes(gene_list: List[str]) -> List[str]:

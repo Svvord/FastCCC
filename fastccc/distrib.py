@@ -162,7 +162,7 @@ class Distribution:
         
         # 为了精确 打得补丁
         if self.is_analytic and pmf2.is_analytic:
-            self.is_complex_analytic = True
+            new_pmf.is_complex_analytic = True
             new_pmf.ligand = self
             new_pmf.receptor = pmf2
         ###
@@ -381,7 +381,7 @@ class Distribution:
 def get_pmf_array_from_samples(samples, is_log1p=True):
     assert np.min(samples) >= 0, "Expression value should be non-negative"
     if is_log1p:
-        assert np.max(samples) < max_value_4_log1p, "Support domain is not valid."
+        assert np.max(samples) <= max_value_4_log1p, "Support domain is not valid."
         pmf_array, _ = np.histogram(samples, pmf_bin_edge)
         pmf_array = pmf_array / np.sum(pmf_array)
         return pmf_array
@@ -398,12 +398,12 @@ def get_distribution_from_samples(samples, is_log1p=True):
 
 
 def get_pvalue_from_pmf(value, pmf):
-    y = pmf.get_pmf_array()
     if pmf.is_analytic:
         pvalue =  1 - pmf.cdf_analytic_func(value)
     elif pmf.is_complex_analytic:
         pvalue = get_pvalue_from_complex_pmf(value, pmf)
     else:
+        y = pmf.get_pmf_array()
         pvalue = 1 - np.sum(y[:int(np.ceil(value / precision))])
     return pvalue
 
@@ -430,7 +430,6 @@ def get_pvalue_from_complex_pmf(value, pmf):
     value *= 2 # we calculate the sum of ligand and receptor instead
     pmf.min_cdf_non_zero = (pmf.ligand.min_cdf_non_zero + pmf.receptor.min_cdf_non_zero) / 2
     pmf.min_cdf_one = (pmf.ligand.min_cdf_one + pmf.receptor.min_cdf_one) / 2
-    print(pmf.min_cdf_non_zero, pmf.min_cdf_one)
     if value <= pmf.min_cdf_non_zero * 2:
         return 1.0
     elif value >= pmf.min_cdf_one * 2:
@@ -445,7 +444,6 @@ def get_pvalue_from_complex_pmf(value, pmf):
             discrete_pmf = pmf.ligand
 
         precise_pmf_array, support_domain = get_precise_pmf_array(discrete_pmf)
-        print(precise_pmf_array[49:54])
         for x, p in zip(support_domain, precise_pmf_array):
             p_value += p * (1 - accurate_pmf.cdf_analytic_func(value - x))
         return p_value
@@ -536,7 +534,11 @@ def get_quantile_pmf_for_n_iid_distribution(distribution, n, quantile=0.9, log=F
 
     section = split_integer_by_probability(m+1, distribution.pmf)
     section = np.int32(np.cumsum(section))
-    cdf = fxi_cdf[section-1]
+    # Prepend 0.0 so that section[k]=0 maps to CDF=0 instead of fxi_cdf[-1]=1.0
+    # (negative indexing trap: when a gene is always expressed, pmf[0]=0 causes
+    # section[0]=0, and fxi_cdf[0-1]=fxi_cdf[-1]=1.0, making the PMF sum >> 1)
+    fxi_cdf_padded = np.concatenate([[0.0], fxi_cdf])
+    cdf = fxi_cdf_padded[section]
     pmf = np.diff(cdf, prepend=0)
     pmf = np.clip(pmf, a_min=0, a_max=None)
     return pmf

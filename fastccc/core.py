@@ -46,7 +46,7 @@ def __save_file(
     timestamp = None,
     method_key = ''
 ):
-    assert os.path.isdir(save_path), "{save_path} doesn't exist or not a dir"
+    assert os.path.isdir(save_path), f"{save_path} doesn't exist or not a dir"
     if timestamp is None:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")

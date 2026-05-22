@@ -1,0 +1,4 @@
+interface:
+  display_name: "FastCCC Agent"
+  short_description: "Natural-language FastCCC analysis workflows"
+  default_prompt: "Use $fastccc-agent to run or explain a FastCCC workflow from plain-language instructions."
