@@ -1,6 +1,6 @@
 [project]
 name = "fastccc"
-version = "0.1.4"
+version = "1.0.0"
 description = "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies."
 authors = [
     {name = "Svvord", email = "cchousiyu@163.com"}
@@ -26,11 +26,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5,<7",
-    "matplotlib>=3.9.2,<4",
-    "seaborn>=0.13.2,<0.14",
     "cellxgene-census>=1.16.2,<2",
-    "jinja2>=3.1.5,<4",
-    "psutil>=6.1.1,<7",
 ]
 
 [build-system]

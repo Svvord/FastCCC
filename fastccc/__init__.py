@@ -12,4 +12,9 @@ from .core import statistical_analysis_method
 
 from . import build_reference
 from . import infer_query
-from .report import generate_report
+from .report import (
+    generate_report,
+    generate_infer_report,
+    generate_reference_report,
+    list_reference_panels,
+)

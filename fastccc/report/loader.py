@@ -16,7 +16,7 @@ class CCCData:
     pvals: pd.DataFrame             # full p-value matrix (celltype_pair × LRI)
     strength: pd.DataFrame          # full strength matrix
     counts_matrix: pd.DataFrame     # celltype × celltype count matrix
-    strength_matrix: pd.DataFrame   # celltype × celltype mean strength matrix
+    strength_matrix: pd.DataFrame   # celltype × celltype summed significant strength matrix
     celltypes: list
     task_id: str
     sample_name: str
@@ -61,7 +61,7 @@ def load_results(
     itbl = pd.read_csv(os.path.join(database_path, 'interaction_table.csv'))
     itbl = itbl.set_index('id_cp_interaction')[['classification', 'directionality', 'is_ppi']]
     significant = significant.merge(itbl, left_on='LRI_ID', right_index=True, how='left')
-    significant['classification'] = significant['classification'].fillna('Unknown')
+    significant['classification'] = significant['classification'].fillna('Unannotated')
     significant['directionality'] = significant['directionality'].fillna('Unknown')
 
     # --- Build celltype × celltype matrices ---

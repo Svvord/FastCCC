@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import seaborn as sns
 
+from .pathway_utils import keep_annotated_classifications
+
 TREND_COLORS = {
     'Up':       '#E64B35',
     'Down':     '#4DBBD5',
@@ -102,7 +104,7 @@ def plot_trend_distribution(data: InferData):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# Fig B — Per cell-type pair stacked bar (top 25 most differential pairs)
+# Fig B - Per cell-type pair stacked bar (top 25 most trend-shifted pairs)
 # ════════════════════════════════════════════════════════════════════════════
 
 def plot_ct_pair_trend_breakdown(data: InferData, top_n: int = 25):
@@ -132,7 +134,7 @@ def plot_ct_pair_trend_breakdown(data: InferData, top_n: int = 25):
     ax.set_yticks(range(n))
     ax.set_yticklabels(ct_trend.index.tolist(), fontsize=7)
     ax.set_xlabel('Number of L-R interactions', fontsize=9)
-    ax.set_title(f'Trend Breakdown per Cell-Type Pair (top {n} most differential)', pad=10)
+    ax.set_title(f'Trend Breakdown per Cell-Type Pair (top {n} most trend-shifted)', pad=10)
     ax.spines['left'].set_visible(False)
     ax.tick_params(axis='y', length=0)
     ax.legend(loc='lower right', fontsize=8)
@@ -140,7 +142,8 @@ def plot_ct_pair_trend_breakdown(data: InferData, top_n: int = 25):
     caption = (
         f"<strong>Fig B — Per Cell-Type Pair Trend Breakdown.</strong> "
         f"Stacked horizontal bars showing the number of each trend category per "
-        f"sender→receiver pair. Top {n} pairs sorted by Up+Down count (most differential on top)."
+        f"sender-receiver pair. Top {n} pairs sorted by Up+Down count "
+        "(largest trend shifts on top)."
     )
     return fig, caption
 
@@ -263,8 +266,119 @@ def plot_top_lr_dotplot(data: InferData, trend: str, top_n_lr: int = 25, top_n_c
     return fig, caption
 
 
+def build_celltype_reference_profiles(data: InferData, top_n: int = 15) -> dict:
+    """Build cell-type-specific trend, L-R, and pathway payload for reference reports."""
+    df = data.results_in_ref.copy()
+    if df.empty:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type reference explorer: no in-reference interactions available.",
+        }
+
+    itbl_path = os.path.join(data.database_path, 'interaction_table.csv')
+    if os.path.exists(itbl_path):
+        itbl = pd.read_csv(itbl_path).set_index('id_cp_interaction')[['classification']]
+        df = df.merge(itbl, left_on='LRI_ID', right_index=True, how='left')
+        df['classification'] = df['classification'].fillna('Unannotated')
+        annotated = keep_annotated_classifications(df)
+    else:
+        annotated = df.iloc[0:0].copy()
+
+    def lr_rows(sub: pd.DataFrame) -> list[dict]:
+        if sub.empty:
+            return []
+        grouped = (
+            sub.groupby(['LRI_ID', 'lr_pair'], dropna=False)
+               .agg(
+                   total_cs=('comm_score', 'sum'),
+                   mean_cs=('comm_score', 'mean'),
+                   interactions=('LRI_ID', 'size'),
+                   trends=('trend_vs_ref', lambda s: s.value_counts().to_dict()),
+               )
+               .sort_values(['total_cs', 'interactions'], ascending=False)
+               .head(top_n)
+        )
+        return [
+            {
+                'lr_pair': lr_pair,
+                'total_cs': round(float(row['total_cs']), 4),
+                'mean_cs': round(float(row['mean_cs']), 4),
+                'interactions': int(row['interactions']),
+                'trends': ', '.join(f"{k}: {v}" for k, v in row['trends'].items()),
+            }
+            for (_, lr_pair), row in grouped.iterrows()
+        ]
+
+    def pathway_rows(sub: pd.DataFrame) -> list[dict]:
+        if sub.empty or 'classification' not in sub.columns:
+            return []
+        grouped = (
+            sub.groupby('classification')
+               .agg(
+                   total_cs=('comm_score', 'sum'),
+                   interactions=('classification', 'size'),
+                   up=('trend_vs_ref', lambda s: int((s == 'Up').sum())),
+                   down=('trend_vs_ref', lambda s: int((s == 'Down').sum())),
+               )
+               .sort_values(['total_cs', 'interactions'], ascending=False)
+               .head(top_n)
+        )
+        return [
+            {
+                'pathway': pathway,
+                'total_cs': round(float(row['total_cs']), 4),
+                'interactions': int(row['interactions']),
+                'up': int(row['up']),
+                'down': int(row['down']),
+            }
+            for pathway, row in grouped.iterrows()
+        ]
+
+    celltypes = sorted(set(df['sender'].dropna().astype(str)) | set(df['receiver'].dropna().astype(str)))
+    profiles = []
+    for celltype in celltypes:
+        either = df[(df['sender'] == celltype) | (df['receiver'] == celltype)]
+        if either.empty:
+            continue
+        trend_counts = {t: int((either['trend_vs_ref'] == t).sum()) for t in TREND_ORDER}
+        ann_either = annotated[
+            (annotated['sender'] == celltype) | (annotated['receiver'] == celltype)
+        ] if not annotated.empty else annotated
+        profiles.append({
+            'celltype': celltype,
+            'n_interactions': int(len(either)),
+            'total_cs': round(float(either['comm_score'].fillna(0).sum()), 4),
+            'trend_counts': trend_counts,
+            'lr': {
+                'Either role': lr_rows(either),
+                'Outgoing': lr_rows(either[either['sender'] == celltype]),
+                'Incoming': lr_rows(either[either['receiver'] == celltype]),
+            },
+            'pathways': {
+                'Either role': pathway_rows(ann_either),
+                'Outgoing': pathway_rows(ann_either[ann_either['sender'] == celltype]) if not ann_either.empty else [],
+                'Incoming': pathway_rows(ann_either[ann_either['receiver'] == celltype]) if not ann_either.empty else [],
+            },
+        })
+
+    profiles = sorted(
+        profiles,
+        key=lambda profile: (-profile['total_cs'], profile['celltype']),
+    )
+    return {
+        'profiles': profiles,
+        'default_celltype': profiles[0]['celltype'] if profiles else '',
+        'caption': (
+            "Interactive reference-comparison panel. For the selected cell type, "
+            "L-R pairs and annotated pathways are ranked by query communication score "
+            "within each communication role."
+        ),
+    }
+
+
 # ════════════════════════════════════════════════════════════════════════════
-# Fig G — CS scatter (query CS vs reference significance)
+# Fig G - Query CS distribution by reference trend
 # ════════════════════════════════════════════════════════════════════════════
 
 def plot_cs_scatter(data: InferData):
@@ -272,39 +386,52 @@ def plot_cs_scatter(data: InferData):
     if df.empty:
         return None, "No data."
 
-    rng = np.random.default_rng(42)
-    fig, ax = plt.subplots(figsize=(8, 6))
-    for t in TREND_ORDER:
-        sub = df[df['trend_vs_ref'] == t]
-        if sub.empty:
-            continue
-        y = sub['is_significant_ref'].astype(float).fillna(-0.1)
-        y = y + rng.uniform(-0.05, 0.05, len(sub))
-        ax.scatter(sub['comm_score'], y,
-                   c=TREND_COLORS[t], s=8, alpha=0.35, lw=0,
-                   label=f'{t} (n={len(sub):,})')
+    df = df[df['comm_score'] >= 0].copy()
+    df['trend_vs_ref'] = pd.Categorical(
+        df['trend_vs_ref'], categories=TREND_ORDER, ordered=True
+    )
+    df['log1p_cs'] = np.log1p(df['comm_score'])
+    order = [t for t in TREND_ORDER if (df['trend_vs_ref'] == t).any()]
+    palette = {t: TREND_COLORS[t] for t in order}
 
-    ax.axhline(0.5, color='#999', lw=0.8, ls='--')
-    ax.set_xlabel(f'Communication Score ({data.query_name})', fontsize=9)
-    ax.set_ylabel(f'Significant in {data.reference_name} [jittered]', fontsize=9)
-    ax.set_yticks([-0.1, 0, 1])
-    ax.set_yticklabels(['Not in ref', 'Not sig', 'Significant'], fontsize=8)
+    fig, ax = plt.subplots(figsize=(8.5, 5.5))
+    sns.violinplot(
+        data=df, x='trend_vs_ref', y='log1p_cs', order=order,
+        hue='trend_vs_ref', palette=palette, legend=False,
+        inner=None, cut=0, linewidth=0.8, saturation=0.9, ax=ax,
+    )
+    sns.boxplot(
+        data=df, x='trend_vs_ref', y='log1p_cs', order=order,
+        width=0.18, showfliers=False, color='white',
+        boxprops={'edgecolor': '#333333', 'linewidth': 0.8},
+        medianprops={'color': '#111111', 'linewidth': 1.2},
+        whiskerprops={'color': '#333333', 'linewidth': 0.8},
+        capprops={'color': '#333333', 'linewidth': 0.8},
+        ax=ax,
+    )
+
+    tick_labels = [
+        f"{t}\n(n={(df['trend_vs_ref'] == t).sum():,})"
+        for t in order
+    ]
+    ax.set_xticks(range(len(order)))
+    ax.set_xticklabels(tick_labels, fontsize=8)
+    ax.set_xlabel('Reference comparison category', fontsize=9)
+    ax.set_ylabel(f'log1p communication score in {data.query_name}', fontsize=9)
     ax.set_title(
-        f'Query Communication Score vs Reference Significance\n'
+        f'Query Communication Score Distribution by Reference Trend\n'
         f'({data.query_name} query vs {data.reference_name} reference)',
         pad=10
     )
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.legend(loc='upper right', fontsize=8, frameon=True, framealpha=0.9)
     fig.tight_layout()
     caption = (
-        f"<strong>Fig G — Communication Score Scatter.</strong> "
-        f"Each point is one L-R × cell-type pair. "
-        f"X-axis: communication score in {data.query_name}. "
-        f"Y-axis (jittered): whether the interaction was significant in the "
-        f"{data.reference_name} reference (1 = significant, 0 = not significant). "
-        f"Colour encodes trend category."
+        f"<strong>Fig G - Query Communication Score Distribution.</strong> "
+        f"Violin and box plots compare the distribution of communication scores in "
+        f"{data.query_name} across reference-comparison categories. The y-axis uses "
+        "log1p(CS) to preserve zero-adjacent values while reducing the influence of "
+        "very high scores; boxes show the interquartile range and median."
     )
     return fig, caption
 
@@ -320,7 +447,10 @@ def plot_pathway_breakdown(data: InferData, top_n: int = 20):
 
     itbl = pd.read_csv(itbl_path).set_index('id_cp_interaction')[['classification']]
     df = data.results_in_ref.merge(itbl, left_on='LRI_ID', right_index=True, how='left')
-    df['classification'] = df['classification'].fillna('Unknown')
+    df['classification'] = df['classification'].fillna('Unannotated')
+    df = keep_annotated_classifications(df)
+    if df.empty:
+        return None, "No annotated pathway classifications available."
 
     up_counts   = df[df['trend_vs_ref'] == 'Up'  ]['classification'].value_counts()
     down_counts = df[df['trend_vs_ref'] == 'Down' ]['classification'].value_counts()
@@ -357,6 +487,6 @@ def plot_pathway_breakdown(data: InferData, top_n: int = 20):
         f"<strong>Fig H — Pathway Breakdown (Up vs Down).</strong> "
         f"Grouped horizontal bars comparing the number of Up (red, {data.query_name}-specific) "
         f"and Down (blue, {data.reference_name}-specific) interactions per pathway classification. "
-        f"Top {len(top_sorted)} pathways by total differential interaction count."
+        f"Top {len(top_sorted)} pathways by total Up and Down trend count."
     )
     return fig, caption

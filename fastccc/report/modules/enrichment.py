@@ -27,9 +27,11 @@ def _run_ora(
     background: List[str],
     gene_sets: List[str],
     organism: str = 'human',
-) -> Optional[pd.DataFrame]:
-    if not _GSEAPY_OK or not gene_list:
-        return None
+) -> Tuple[Optional[pd.DataFrame], str]:
+    if not _GSEAPY_OK:
+        return None, "ORA skipped: gseapy is not installed."
+    if not gene_list:
+        return None, "ORA skipped: no eligible genes were detected."
     try:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -43,13 +45,15 @@ def _run_ora(
             )
         res = enr.results
         if res is None or res.empty:
-            return None
+            return None, "ORA skipped: Enrichr returned no enrichment terms."
         res = res[res['Adjusted P-value'] < 0.05].copy()
+        if res.empty:
+            return None, "ORA skipped: no terms passed adjusted p-value < 0.05."
         res['-log10(Padj)'] = -np.log10(res['Adjusted P-value'].clip(1e-10))
-        return res.sort_values('-log10(Padj)', ascending=False)
+        return res.sort_values('-log10(Padj)', ascending=False), ""
     except Exception as e:
         warnings.warn(f"gseapy ORA failed: {e}")
-        return None
+        return None, f"ORA skipped: Enrichr request failed ({e})."
 
 
 def _plot_ora_bar(
@@ -93,16 +97,10 @@ def plot_ligand_ora(
     sig_ligands = _explode_genes(sig['ligand'].dropna().unique().tolist())
     background  = _explode_genes(_get_tested_genes(data, role='ligand'))
 
-    enr = _run_ora(sig_ligands, background, list(gene_sets))
+    enr, ora_note = _run_ora(sig_ligands, background, list(gene_sets))
 
     if enr is None or enr.empty:
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.text(0.5, 0.5,
-                'Ligand ORA: no significant enrichment found\nor network unavailable.',
-                ha='center', va='center', transform=ax.transAxes, fontsize=10)
-        ax.axis('off')
-        caption = "Ligand gene ORA: no enriched terms identified (p_adj < 0.05)."
-        return fig, caption
+        return None, f"Ligand gene {ora_note}"
 
     fig = _plot_ora_bar(enr, f'Ligand Gene Enrichment (ORA)\n{data.sample_name}',
                         top_n=top_n, color='#e07b54')
@@ -114,6 +112,98 @@ def plot_ligand_ora(
         "The dashed line marks the significance threshold (p_adj = 0.05)."
     )
     return fig, caption
+
+
+def build_celltype_gene_profiles(
+    data: CCCData, role: str = 'ligand', top_n: int = 20
+) -> Dict:
+    """Build cell-type-specific ligand or receptor gene evidence payload."""
+    if role not in {'ligand', 'receptor'}:
+        raise ValueError("role must be 'ligand' or 'receptor'")
+
+    sig = data.significant.copy()
+    gene_col = 'ligand' if role == 'ligand' else 'receptor'
+    ct_col = 'sender_celltype' if role == 'ligand' else 'receiver_celltype'
+    partner_col = 'receiver_celltype' if role == 'ligand' else 'sender_celltype'
+    required = {gene_col, ct_col, partner_col, 'p-value'}
+    if sig.empty or not required.issubset(sig.columns):
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'role': role,
+            'caption': f"Cell-type {role} gene explorer: no significant interactions available.",
+        }
+
+    evidence_floor = 1e-10
+    sig['evidence'] = -np.log10(
+        pd.to_numeric(sig['p-value'], errors='coerce').clip(evidence_floor, 1.0)
+    )
+    sig = sig[np.isfinite(sig['evidence'])].copy()
+
+    rows = []
+    for _, row in sig.iterrows():
+        for gene in _explode_genes([row[gene_col]]):
+            rows.append({
+                'celltype': row[ct_col],
+                'partner': row[partner_col],
+                'gene': gene,
+                'evidence': row['evidence'],
+                'p_value': row['p-value'],
+            })
+    if not rows:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'role': role,
+            'caption': f"Cell-type {role} gene explorer: no eligible genes available.",
+        }
+
+    gene_df = pd.DataFrame(rows)
+    profiles = []
+    for celltype in sorted(gene_df['celltype'].dropna().astype(str).unique()):
+        sub = gene_df[gene_df['celltype'] == celltype]
+        grouped = (
+            sub.groupby('gene')
+               .agg(
+                   evidence=('evidence', 'sum'),
+                   interactions=('gene', 'size'),
+                   best_p=('p_value', 'min'),
+                   partners=('partner', lambda s: sorted(set(s.astype(str)))),
+               )
+               .sort_values(['evidence', 'interactions'], ascending=False)
+               .head(top_n)
+        )
+        profiles.append({
+            'celltype': celltype,
+            'n_genes': int(sub['gene'].nunique()),
+            'n_interactions': int(len(sub)),
+            'total_evidence': round(float(sub['evidence'].sum()), 3),
+            'genes': [
+                {
+                    'gene': gene,
+                    'evidence': round(float(row['evidence']), 3),
+                    'interactions': int(row['interactions']),
+                    'best_p': f"<{evidence_floor:.0e}" if float(row['best_p']) <= evidence_floor else f"{float(row['best_p']):.2e}",
+                    'partners': ', '.join(row['partners'][:6]),
+                }
+                for gene, row in grouped.iterrows()
+            ],
+        })
+
+    profiles = sorted(
+        profiles,
+        key=lambda profile: (-profile['total_evidence'], profile['celltype']),
+    )
+    return {
+        'profiles': profiles,
+        'default_celltype': profiles[0]['celltype'] if profiles else '',
+        'role': role,
+        'caption': (
+            f"Interactive cell-type {role} gene panel. Genes are ranked within the "
+            "selected cell type by cumulative -log10(p-value) over significant "
+            "interactions. This is a cell-type evidence view, not a separate ORA test."
+        ),
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -129,16 +219,10 @@ def plot_receptor_ora(
     sig_receptors = _explode_genes(sig['receptor'].dropna().unique().tolist())
     background    = _explode_genes(_get_tested_genes(data, role='receptor'))
 
-    enr = _run_ora(sig_receptors, background, list(gene_sets))
+    enr, ora_note = _run_ora(sig_receptors, background, list(gene_sets))
 
     if enr is None or enr.empty:
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.text(0.5, 0.5,
-                'Receptor ORA: no significant enrichment found\nor network unavailable.',
-                ha='center', va='center', transform=ax.transAxes, fontsize=10)
-        ax.axis('off')
-        caption = "Receptor gene ORA: no enriched terms identified (p_adj < 0.05)."
-        return fig, caption
+        return None, f"Receptor gene {ora_note}"
 
     fig = _plot_ora_bar(enr, f'Receptor Gene Enrichment (ORA)\n{data.sample_name}',
                         top_n=top_n, color='#5b8db8')

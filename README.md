@@ -5,11 +5,34 @@
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://svvord.github.io/FastCCC/) &nbsp;
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Svvord/FastCCC/blob/main/LICENSE)
 
-**[2026.05.09]** New: FastCCC now provides an automated HTML report generation feature (`fastccc.report.generate_report`). After running FastCCC, a single function call produces a self-contained interactive report with 24 publication-quality figures covering global CCC overview, ligand–receptor analysis, pathway enrichment, cell-type profiles, network analyses, and — when two conditions are provided — a differential comparison tab. See the [Report Tutorial](https://svvord.github.io/FastCCC/usage/report.html) for details.
+**[2026.05.22]** Release: FastCCC v1.0.0 is now available. This release fixes several potential bugs, adds coding-agent skills for natural-language FastCCC workflows, and improves automated reports with cell-type-specific evidence explorers, clearer condition-comparison language, figure-generation audit records, and enhanced reference reports. Reference reports can be generated from a selected healthy tissue panel (`reference_tissue`) or from a user-built custom control panel (`reference_path`) with `fastccc.report.generate_reference_report`.
+
+**[2026.05.09]** New: FastCCC now provides an automated HTML report generation feature (`fastccc.report.generate_report`). After running FastCCC, a single function call produces a self-contained interactive report covering global CCC overview, ligand-receptor analysis, pathway enrichment, cell-type profiles, network analyses, and, when two conditions are provided, a condition-comparison tab. See the [Report Tutorial](https://svvord.github.io/FastCCC/usage/report.html) for details.
 
 **[2025.02.01]** Update: To minimize the size of transmitted panel data, we leverage FastCCC’s speed to compute essential reference data during first-time usage. This process incurs only an additional 1–2 minutes during initial activation. Meanwhile, the storage requirement for uploading the panel data has been significantly reduced (from 3GB to 5MB per tissue panel).
 
 **[2025.01.23]** We have provided a comprehensive [tutorial](https://svvord.github.io/FastCCC/) on the usage of FastCCC, which includes detailed instructions on installation, usage, and more. We highly recommend referring to this [tutorial](https://svvord.github.io/FastCCC/) for a step-by-step guide.
+
+## Coding-agent workflows
+
+FastCCC includes project instructions for coding agents. In Codex or Claude Code, use
+`$fastccc-agent`, for example:
+
+```text
+$fastccc-agent Run a standard FastCCC analysis for ./data/sample.h5ad. The cell type column is cell_type, and outputs should be saved under ./results/sample.
+```
+
+```text
+$fastccc-agent Run a two-condition FastCCC comparison for ./data/cohort.h5ad. The condition column is treatment, compare treated vs control, use cell_type as the cell type column, and save outputs under ./results/treated_vs_control.
+```
+
+```text
+$fastccc-agent Analyze ./data/query.h5ad with the healthy liver reference panel. The cell type column is cell_type, and outputs should be saved under ./results/query_vs_healthy_liver.
+```
+
+```text
+$fastccc-agent Run reference-based analysis for ./data/cohort.h5ad. Use condition=control to build a custom reference, compare condition=disease as the query, and use cell_type as the cell type column.
+```
 
 ## Overview
 ![scheme](./docs/images/figure1.png)

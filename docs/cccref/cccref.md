@@ -64,6 +64,35 @@ fastccc.infer_query.infer_query_workflow(
     meta_key = 'cell_type' # Use meta_key or celltype_file_path based on your query data.
 )
 ```
+
+To run the same healthy tissue reference workflow and generate the HTML
+reference report in one call:
+
+```python
+from fastccc.report import generate_reference_report, list_reference_panels
+
+print(list_reference_panels('FastCCC/reference'))
+
+report_path = generate_reference_report(
+    database_path          = database_file_path,
+    query_counts_file_path = tissue_query_file,
+    infer_result_dir       = save_path,
+    output_dir             = 'your/save/path/user_collected_query_report/',
+    reference_tissue       = 'lung',
+    reference_root         = 'FastCCC/reference',
+    meta_key               = 'cell_type',
+    query_name             = 'Query',
+)
+```
+
+Pass `reference_path` instead of `reference_tissue` when the baseline is a
+custom panel built from a user-curated control dataset.
+
+The reference report is self-contained and includes global trend summaries,
+sender-receiver heatmaps, top L-R dotplots, pathway breakdowns, a cell-type
+reference explorer, and a figure-generation audit. The cell-type explorer lets
+users switch among cell types, sender/receiver roles, L-R pairs, and annotated
+pathway profiles.
 <blockquote class="new-title"> <p>output</p>
 <div class="highlight"><pre class="highlight"><code><span class="sr">2025-01-26 20:54:32</span> | INFO     | Start inferring by using CCC reference: lung
 <span class="sr">2025-01-26 20:54:32</span> | INFO     | Reference min_percentile = 0.1
@@ -170,7 +199,51 @@ fastccc.build_reference.build_reference_workflow(
 </code></pre></div>
 </blockquote>
 
+## How to use one dataset with control and case groups as a custom reference workflow
+
+If a user-collected dataset contains both a reference/control group and a
+query/case group, the control group can be used to build a custom FastCCC
+reference panel. The case group can then be compared against that panel using
+reference-based inference. Both subsets should use raw counts.
+
+```python
+import scanpy as sc
+import fastccc.build_reference
+from fastccc.report import generate_reference_report
+
+adata = sc.read_h5ad('your/save/path/cohort_raw_counts.h5ad')
+
+control = adata[adata.obs['condition'] == 'control'].copy()
+case = adata[adata.obs['condition'] == 'disease'].copy()
+
+database_file_path = 'FastCCC/db/CPDBv5.0.0/'
+reference_root = 'your/save/path/reference/'
+
+fastccc.build_reference.build_reference_workflow(
+    database_file_path         = database_file_path,
+    reference_counts_file_path = control,
+    celltype_file_path         = None,
+    reference_name             = 'cohort_control',
+    save_path                  = reference_root,
+    meta_key                   = 'cell_type'
+)
+
+report_path = generate_reference_report(
+    database_path          = database_file_path,
+    query_counts_file_path = case,
+    infer_result_dir       = 'your/save/path/results/disease_vs_cohort_control/',
+    output_dir             = 'your/save/path/report/disease_vs_cohort_control/',
+    reference_path         = 'your/save/path/reference/cohort_control',
+    meta_key               = 'cell_type',
+    query_name             = 'Disease',
+    reference_name         = 'Cohort Control',
+)
+```
+
+If a local FastCCC version does not accept an in-memory `AnnData` object in one
+of these entrypoints, write `control` and `case` to temporary `.h5ad` files and
+pass those file paths instead.
+
 
 [CellxGene]: https://cellxgene.cziscience.com/
 [GitHub]: https://github.com/Svvord/FastCCC
-

@@ -10,6 +10,14 @@ import networkx as nx
 
 from ..loader import CCCData
 from ..utils import wrap_labels
+from .pathway_utils import keep_annotated_classifications
+
+
+def _display_edges(edges, max_edges: int = 120):
+    if len(edges) <= max_edges:
+        return edges, len(edges)
+    ranked = sorted(edges, key=lambda edge: edge[2]['weight'], reverse=True)
+    return ranked[:max_edges], len(edges)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -51,7 +59,7 @@ def plot_network_centrality(
     fig, ax = plt.subplots(figsize=(10, 9))
 
     # Edges
-    edges = list(G.edges(data=True))
+    edges, n_total_edges = _display_edges(list(G.edges(data=True)))
     max_ew = max(d['weight'] for _, _, d in edges) if edges else 1
     for u, v, d in edges:
         x_start, y_start = pos[u]
@@ -104,11 +112,17 @@ def plot_network_centrality(
     )
     fig.tight_layout()
 
+    edge_note = (
+        f" The visual network displays the {len(edges)} highest-weight edges from "
+        f"{n_total_edges} non-zero directed edges; centrality statistics are computed "
+        "on the full interaction graph."
+        if n_total_edges > len(edges) else ""
+    )
     caption = (
         "Directed communication network. Each node is a cell type; directed edges "
         "indicate significant sender→receiver interactions, with edge width proportional "
         "to total interaction count. Node size scales with betweenness centrality, "
-        "identifying hub cell types that mediate indirect signalling between others."
+        f"identifying hub cell types that mediate indirect signalling between others.{edge_note}"
     )
     return fig, caption
 
@@ -225,7 +239,7 @@ def _alluvial_3col(
 
     # Column header labels
     for l, (lbl, xc) in enumerate(zip(['Sender', 'Pathway', 'Receiver'], xs)):
-        ax.text(xc, 1.04, lbl, ha='center', va='bottom', fontsize=10,
+        ax.text(xc, 1.01, lbl, ha='center', va='bottom', fontsize=10,
                 fontweight='bold', transform=ax.transAxes)
 
     ax.set_xlim(-0.12, 1.12)
@@ -246,6 +260,11 @@ def plot_sankey_flow(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Sankey diagram (no data)."
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Sankey diagram (no annotated pathway classifications)."
 
     top_s = sig['sender_celltype'].value_counts().head(top_n_ct).index.tolist()
     top_r = sig['receiver_celltype'].value_counts().head(top_n_ct).index.tolist()
@@ -273,11 +292,11 @@ def plot_sankey_flow(
         col0='sender_celltype', col1='classification', col2='receiver_celltype',
         colors_col0=colors_dict,
     )
-    ax.set_title(
+    fig.suptitle(
         f'Sender → Pathway → Receiver Interaction Flow\n{data.sample_name}',
-        pad=18, fontsize=11,
+        y=0.99, fontsize=11, fontweight='bold',
     )
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
 
     caption = (
         f"Alluvial (Sankey) diagram showing how interactions flow from the top {top_n_ct} "
@@ -590,7 +609,7 @@ def plot_network_communities(
 
     fig, ax = plt.subplots(figsize=(11, 9))
 
-    edges = list(G.edges(data=True))
+    edges, n_total_edges = _display_edges(list(G.edges(data=True)))
     max_ew = max(d['weight'] for _, _, d in edges) if edges else 1
     for u, v, d in edges:
         xs, ys = pos[u]
@@ -626,11 +645,17 @@ def plot_network_communities(
     fig.tight_layout()
 
     n_comm = len(communities)
+    edge_note = (
+        f" The drawn network retains the {len(edges)} highest-weight edges from "
+        f"{n_total_edges} non-zero bidirectional edges for readability; community "
+        "detection uses the full graph."
+        if n_total_edges > len(edges) else ""
+    )
     caption = (
         f"Undirected communication network with {n_comm} communities detected by greedy "
         "modularity maximisation (Newman, 2004). Node colour indicates community membership; "
         "node size reflects total interaction count (incoming + outgoing). Edge width is "
         "proportional to the total bidirectional interaction count. Cell types in the same "
-        "community preferentially communicate with each other."
+        f"community preferentially communicate with each other.{edge_note}"
     )
     return fig, caption

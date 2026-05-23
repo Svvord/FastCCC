@@ -22,8 +22,8 @@ Read [references/workflows.md](references/workflows.md) before executing a workf
 Choose exactly one primary workflow first:
 
 - Single dataset CCC analysis: user has one `.h5ad` or `AnnData` and wants CCC results
-- Multi-condition comparison: user wants per-condition runs plus one differential report
-- Reference-based inference: user wants to compare a query dataset to a tissue reference panel
+- Multi-condition comparison: user wants per-condition runs plus one condition-comparison report
+- Reference-based inference: user wants to compare a query dataset to a healthy tissue panel or custom reference panel
 - Reference building: user wants to create a new FastCCC reference panel from raw-count reference data
 - Result explanation: user already has FastCCC outputs and wants interpretation or a report
 
@@ -44,9 +44,15 @@ Multi-condition comparison:
 
 Reference-based inference:
 - query dataset path (raw counts — FastCCC rank-preprocesses internally)
-- reference panel path
+- reference panel choice: either `reference_tissue` under a reference root, or a custom `reference_path`
 - cell type column name, or a metadata TSV
 - `celltype_mapping_dict` if query cell type names differ from those in the reference (JSON file or dict mapping reference name → query name)
+
+Reference-based inference from two groups in one dataset:
+- dataset path with a condition/group column
+- reference/control group value used to build a custom reference panel
+- query/case group value compared against that custom reference
+- cell type column name, or a metadata TSV
 
 Reference building:
 - raw-count reference dataset path
@@ -74,6 +80,24 @@ Use these defaults unless the user specifies otherwise:
 - Report p-value threshold: 0.05
 - Report top N LR pairs shown: 30
 - Report top N cell types shown: 20
+- Report chord cap: `max_chords=180`
+- Reference panel selection: prefer `fastccc.report.list_reference_panels(reference_root)` and `fastccc.report.generate_reference_report(...)` when the user asks for a healthy tissue reference report
+
+## Environment prerequisites
+
+Before running FastCCC commands, verify the execution environment rather than assuming it exists:
+
+- Python can import the local `fastccc` package from the current checkout or installed environment.
+- Core dependencies needed for the selected workflow are available, especially `scanpy`, `anndata`, `numpy`, `pandas`, `scipy`, `matplotlib`, and `loguru`.
+- The LRI database path exists; use `db/CPDBv5.0.0` by default when present.
+- Input `.h5ad` or metadata files are readable from the current machine.
+- Standard CCC analysis uses normalized log1p data or applies normalization before running.
+- Reference building and reference-based inference use raw count data.
+- Healthy tissue reference workflows need a downloaded reference root containing tissue panel folders with `config.toml`.
+- Custom reference workflows need an already built FastCCC reference panel directory unless the task is to build that panel first.
+- Enrichment/ORA panels may need network access for Enrichr through `gseapy`; if unavailable, continue report generation and surface the skipped ORA reason from the report audit.
+
+If the user only asks for a plan, command template, or result explanation, do not require a runnable FastCCC environment. If the user asks to run analysis, check the environment and report the first missing prerequisite that blocks execution.
 
 ## Input safety rules
 
@@ -90,6 +114,8 @@ Use these defaults unless the user specifies otherwise:
 - Create result directories clearly, usually under `results/` or a user-provided output directory.
 - After standard FastCCC analysis, identify the produced `task_id` from `*_significant_results.tsv`.
 - For reference-based inference, there is no `task_id`; look for `query_infer_results.tsv` instead.
+- To run reference inference and report generation together, use `fastccc.report.generate_reference_report(...)`.
+- To render a report from existing reference inference outputs, use `fastccc.report.generate_infer_report(...)`.
 - If the user asked for interpretation, summarize:
   - output files created
   - number of cell types

@@ -91,6 +91,51 @@ tr:nth-child(even) td { background: #f8f9fb; }
 .run-params td { background: none; padding: 3px 0; border: none; color: #222; }
 .run-params tr { border: none; }
 .run-params code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+.scientific-note { background: #fff8e8; border: 1px solid #eed49c; border-left: 4px solid #d89718;
+                   border-radius: 4px; padding: 12px 15px; margin: 16px 0; line-height: 1.6; color: #4b402b; }
+.audit-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 16px; }
+.audit-pill { background: #f0f5fb; border: 1px solid #dce4ef; border-radius: 4px;
+              min-width: 120px; padding: 8px 12px; }
+.audit-pill .val { display: block; color: #2c5f8a; font-size: 18px; font-weight: 700; }
+.audit-pill .lbl { display: block; color: #666; font-size: 11px; }
+.audit-table td:last-child { word-break: break-word; }
+.ct-pathway-panel { border: 1px solid #dce4ef; border-radius: 5px; background: #fbfcfe;
+                    padding: 16px 18px; margin: 14px 0 8px; }
+.ct-pathway-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+                      margin-bottom: 14px; }
+.ct-pathway-toolbar label { color: #555; font-size: 12px; font-weight: 600; }
+.ct-pathway-toolbar select { min-width: min(360px, 100%); border: 1px solid #b8c7db;
+                             border-radius: 4px; background: white; color: #222;
+                             padding: 6px 9px; font-size: 12px; }
+.ct-pathway-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.ct-pathway-stat { border: 1px solid #e0e7f0; border-radius: 4px; background: white;
+                   padding: 7px 10px; min-width: 118px; }
+.ct-pathway-stat .val { display: block; color: #2c5f8a; font-size: 15px; font-weight: 700; }
+.ct-pathway-stat .lbl { display: block; color: #666; font-size: 10.5px; }
+.ct-pathway-head, .ct-pathway-row { display: grid;
+                                     grid-template-columns: minmax(220px, 1.7fr) minmax(180px, 1fr) 190px;
+                                     gap: 12px; align-items: center; }
+.ct-pathway-head { color: #666; font-size: 10.5px; font-weight: 700; padding: 0 0 7px; }
+.ct-pathway-row { border-top: 1px solid #e8edf4; padding: 9px 0; }
+.ct-pathway-name { color: #222; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-pathway-track { background: #e8eef6; border-radius: 3px; height: 14px; overflow: hidden; }
+.ct-pathway-fill { background: #d9794f; height: 100%; min-width: 2px; }
+.ct-pathway-score { color: #555; font-size: 10.5px; margin-top: 3px; }
+.ct-pathway-role { display: flex; flex-wrap: wrap; gap: 5px; color: #555; font-size: 10.5px; }
+.ct-pathway-role span { border: 1px solid #e0e7f0; border-radius: 3px; background: white;
+                        padding: 2px 5px; }
+.ct-explorer-mode { display: inline-flex; gap: 6px; align-items: center; }
+.ct-explorer-row { border-top: 1px solid #e8edf4; padding: 9px 0; display: grid;
+                   grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) 170px 170px;
+                   gap: 12px; align-items: center; }
+.ct-explorer-name { color: #222; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-explorer-meta { color: #555; font-size: 10.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-explorer-empty { color: #777; font-size: 11px; padding: 10px 0; border-top: 1px solid #e8edf4; }
+@media (max-width: 780px) {
+  .ct-pathway-head { display: none; }
+  .ct-pathway-row { grid-template-columns: 1fr; gap: 7px; }
+  .ct-explorer-row { grid-template-columns: 1fr; gap: 7px; }
+}
 </style>
 </head>
 <body>
@@ -177,6 +222,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
       <tr><th>p-value threshold</th><td>{{ ri.pval_threshold }}</td></tr>
       <tr><th>Top L-R pairs shown</th><td>{{ ri.top_n_lr }}</td></tr>
       <tr><th>Top cell types shown</th><td>{{ ri.top_n_celltypes }}</td></tr>
+      <tr><th>Chord connections shown</th><td>{{ ri.max_chords }}</td></tr>
       <tr><th>Enrichment gene sets</th><td>{{ ri.gene_sets_str }}</td></tr>
       {% if ri.has_conditions %}
       <tr><th>Conditions compared</th><td>{{ ri.name_a }} vs {{ ri.name_b }}</td></tr>
@@ -184,6 +230,14 @@ tr:nth-child(even) td { background: #f8f9fb; }
       <tr><th>Report generated</th><td>{{ ri.report_date }}</td></tr>
       <tr><th>FastCCC version</th><td>{{ ri.version }}</td></tr>
     </table>
+  </div>
+
+  <div class="scientific-note">
+    <strong>Interpretation scope.</strong>
+    FastCCC significance in this tab is assessed within the supplied sample or condition
+    using the configured L-R database and communication-score construction. Figures in the
+    condition-comparison tab summarize differences between independently analysed result
+    sets; replicate-aware differential claims require an explicit between-condition model.
   </div>
 </div>
 
@@ -226,11 +280,50 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <div class="fig-caption"><strong>Figure 5.</strong> {{ f.lr_dotplot[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 5 not generated.</p>{% endif %}
 
+  <h3>Figure 5B — Cell-Type L-R Evidence Explorer</h3>
+  {% if f.celltype_lrs.profiles %}
+  <div class="fig-block">
+    <div class="ct-pathway-panel" data-celltype-lr-panel>
+      <div class="ct-pathway-toolbar">
+        <label>Cell type</label>
+        <select data-celltype-select></select>
+        <label>Role</label>
+        <select data-mode-select></select>
+      </div>
+      <div data-summary></div>
+      <div data-rows></div>
+      <script type="application/json" data-payload>{{ f.celltype_lrs | tojson }}</script>
+    </div>
+    <div class="fig-caption"><strong>Figure 5B.</strong> {{ f.celltype_lrs.caption }}</div>
+  </div>
+  {% else %}<p class="skip-note">{{ f.celltype_lrs.caption }}</p>{% endif %}
+
   <h3>Figure 6 — Pathway Classification Distribution</h3>
   {% if f.class_bar[0] %}<div class="fig-block">
     <img src="data:image/png;base64,{{ f.class_bar[0] }}" alt="Classification Bar">
     <div class="fig-caption"><strong>Figure 6.</strong> {{ f.class_bar[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 6 not generated.</p>{% endif %}
+
+  <h3>Figure 6B — Cell-Type Pathway Evidence Explorer</h3>
+  {% if f.celltype_pathways.profiles %}
+  <div class="fig-block">
+    <div class="ct-pathway-panel" data-celltype-pathway-panel>
+      <div class="ct-pathway-toolbar">
+        <label for="{{ tab.id }}-celltype-pathway-select">Cell type</label>
+        <select id="{{ tab.id }}-celltype-pathway-select" data-celltype-pathway-select></select>
+      </div>
+      <div data-celltype-pathway-summary></div>
+      <div class="ct-pathway-head">
+        <span>Pathway classification</span>
+        <span>Cumulative significance evidence</span>
+        <span>Significant CCC roles</span>
+      </div>
+      <div data-celltype-pathway-rows></div>
+      <script type="application/json" data-celltype-pathway-data>{{ f.celltype_pathways | tojson }}</script>
+    </div>
+    <div class="fig-caption"><strong>Figure 6B.</strong> {{ f.celltype_pathways.caption }}</div>
+  </div>
+  {% else %}<p class="skip-note">{{ f.celltype_pathways.caption }}</p>{% endif %}
 
   <h3>Figure 7 — Pathway × Cell-Type Pair Heatmap</h3>
   {% if f.path_ct[0] %}<div class="fig-block">
@@ -249,11 +342,43 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <div class="fig-caption"><strong>Figure 8.</strong> {{ f.lig_ora[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 8 not generated.</p>{% endif %}
 
+  <h3>Figure 8B — Cell-Type Ligand Gene Evidence Explorer</h3>
+  {% if f.celltype_ligands.profiles %}
+  <div class="fig-block">
+    <div class="ct-pathway-panel" data-celltype-gene-panel>
+      <div class="ct-pathway-toolbar">
+        <label>Sender cell type</label>
+        <select data-celltype-select></select>
+      </div>
+      <div data-summary></div>
+      <div data-rows></div>
+      <script type="application/json" data-payload>{{ f.celltype_ligands | tojson }}</script>
+    </div>
+    <div class="fig-caption"><strong>Figure 8B.</strong> {{ f.celltype_ligands.caption }}</div>
+  </div>
+  {% else %}<p class="skip-note">{{ f.celltype_ligands.caption }}</p>{% endif %}
+
   <h3>Figure 9 — Receptor Gene ORA</h3>
   {% if f.rec_ora[0] %}<div class="fig-block">
     <img src="data:image/png;base64,{{ f.rec_ora[0] }}" alt="Receptor ORA">
     <div class="fig-caption"><strong>Figure 9.</strong> {{ f.rec_ora[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 9 not generated.</p>{% endif %}
+
+  <h3>Figure 9B — Cell-Type Receptor Gene Evidence Explorer</h3>
+  {% if f.celltype_receptors.profiles %}
+  <div class="fig-block">
+    <div class="ct-pathway-panel" data-celltype-gene-panel>
+      <div class="ct-pathway-toolbar">
+        <label>Receiver cell type</label>
+        <select data-celltype-select></select>
+      </div>
+      <div data-summary></div>
+      <div data-rows></div>
+      <script type="application/json" data-payload>{{ f.celltype_receptors | tojson }}</script>
+    </div>
+    <div class="fig-caption"><strong>Figure 9B.</strong> {{ f.celltype_receptors.caption }}</div>
+  </div>
+  {% else %}<p class="skip-note">{{ f.celltype_receptors.caption }}</p>{% endif %}
 
   <h3>Figure 10 — Predicted TF Activation Heatmap</h3>
   {% if f.tf[0] %}<div class="fig-block">
@@ -348,6 +473,24 @@ tr:nth-child(even) td { background: #f8f9fb; }
     <div class="fig-caption"><strong>Figure 18.</strong> {{ f.info_flow[1] }}</div>
   </div>{% else %}<p class="skip-note">Figure 18 not generated.</p>{% endif %}
 
+  <h3>Figure 18B — Cell-Type Pathway Communication Score Explorer</h3>
+  {% if f.celltype_pathway_flow.profiles %}
+  <div class="fig-block">
+    <div class="ct-pathway-panel" data-celltype-pathway-flow-panel>
+      <div class="ct-pathway-toolbar">
+        <label>Cell type</label>
+        <select data-celltype-select></select>
+        <label>Role</label>
+        <select data-mode-select></select>
+      </div>
+      <div data-summary></div>
+      <div data-rows></div>
+      <script type="application/json" data-payload>{{ f.celltype_pathway_flow | tojson }}</script>
+    </div>
+    <div class="fig-caption"><strong>Figure 18B.</strong> {{ f.celltype_pathway_flow.caption }}</div>
+  </div>
+  {% else %}<p class="skip-note">{{ f.celltype_pathway_flow.caption }}</p>{% endif %}
+
   <h3>Figure 19 — Top L-R Pairs per Pathway</h3>
   {% if f.lr_multiples[0] %}<div class="fig-block">
     <img src="data:image/png;base64,{{ f.lr_multiples[0] }}" alt="LR Multiples">
@@ -392,6 +535,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
   'pval_threshold':  pval_threshold,
   'top_n_lr':        top_n_lr,
   'top_n_celltypes': top_n_celltypes,
+  'max_chords':      max_chords,
   'gene_sets_str':   gene_sets_str,
   'has_conditions':  has_conditions,
   'name_a':          name_a,
@@ -407,23 +551,29 @@ tr:nth-child(even) td { background: #f8f9fb; }
 </div>
 {% endfor %}
 
-<!-- ══════ DIFFERENTIAL TAB ══════ -->
+<!-- ══════ CONDITION COMPARISON TAB ══════ -->
 {% if has_differential %}
 <div id="tab-diff" class="tab-content">
   <div class="toc">
     <h3>Contents</h3>
     <ol>
-      <li><a href="#diff-heatmap">Differential Interaction Heatmap</a></li>
-      <li><a href="#diff-volcano">Differential Volcano Plot</a></li>
-      <li><a href="#diff-pathway">Differential Pathway Activity</a></li>
+      <li><a href="#diff-heatmap">Interaction Count Comparison</a></li>
+      <li><a href="#diff-volcano">L-R Comparison Evidence Plot</a></li>
+      <li><a href="#diff-pathway">Pathway Count Comparison</a></li>
       <li><a href="#diff-stability">L-R Pair Stability Ranking</a></li>
     </ol>
   </div>
 
   <div class="section" id="diff-heatmap">
-    <h2>Differential CCC Analysis — {{ name_a }} vs. {{ name_b }}</h2>
+    <h2>CCC Condition Comparison - {{ name_a }} vs. {{ name_b }}</h2>
+    <div class="scientific-note">
+      <strong>Statistical scope.</strong>
+      Each condition was analysed independently by FastCCC. This page compares significant
+      interaction counts, communication scores, and within-condition evidence across the two
+      result sets. It does not by itself estimate a replicate-aware differential p-value.
+    </div>
 
-    <h3>Figure 22 — Differential Interaction Count Heatmap</h3>
+    <h3>Figure 22 — Interaction Count Comparison Heatmap</h3>
     {% if diff_figs.heatmap[0] %}<div class="fig-block">
       <img src="data:image/png;base64,{{ diff_figs.heatmap[0] }}" alt="Diff Heatmap">
       <div class="fig-caption"><strong>Figure 22.</strong> {{ diff_figs.heatmap[1] }}</div>
@@ -431,7 +581,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
   </div>
 
   <div class="section" id="diff-volcano">
-    <h3>Figure 23 — Differential L-R Volcano Plot</h3>
+    <h3>Figure 23 — L-R Comparison Evidence Plot</h3>
     {% if diff_figs.volcano[0] %}<div class="fig-block">
       <img src="data:image/png;base64,{{ diff_figs.volcano[0] }}" alt="Diff Volcano">
       <div class="fig-caption"><strong>Figure 23.</strong> {{ diff_figs.volcano[1] }}</div>
@@ -439,7 +589,7 @@ tr:nth-child(even) td { background: #f8f9fb; }
   </div>
 
   <div class="section" id="diff-pathway">
-    <h3>Figure 24 — Differential Pathway Activity</h3>
+    <h3>Figure 24 — Pathway Interaction Count Comparison</h3>
     {% if diff_figs.pathway[0] %}<div class="fig-block">
       <img src="data:image/png;base64,{{ diff_figs.pathway[0] }}" alt="Diff Pathway">
       <div class="fig-caption"><strong>Figure 24.</strong> {{ diff_figs.pathway[1] }}</div>
@@ -491,6 +641,32 @@ tr:nth-child(even) td { background: #f8f9fb; }
   </table>
 </div>
 
+<!-- ══════ FIGURE GENERATION AUDIT ══════ -->
+<div class="section" id="figure-audit">
+  <h2>Figure Generation Audit</h2>
+  <p style="line-height:1.6;">
+    Report figures are generated independently so an unsupported panel does not hide the
+    remaining analysis. The audit below records the figure status for this HTML artifact.
+  </p>
+  <div class="audit-summary">
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.generated }}</span><span class="lbl">Figures generated</span></div>
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.skipped }}</span><span class="lbl">Panels skipped</span></div>
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.failed }}</span><span class="lbl">Panels failed</span></div>
+  </div>
+  {% if figure_audit.unavailable %}
+  <table class="audit-table">
+    <thead><tr><th>Artifact</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for item in figure_audit.unavailable %}
+      <tr><td><code>{{ item.artifact }}</code></td><td>{{ item.status }}</td><td>{{ item.note }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="line-height:1.6;">All requested report panels were generated.</p>
+  {% endif %}
+</div>
+
 <!-- ══════ METHODS ══════ -->
 <div class="section" id="methods">
   <h2>Methods</h2>
@@ -509,10 +685,13 @@ tr:nth-child(even) td { background: #f8f9fb; }
     Directed graph built with <strong>NetworkX</strong>; betweenness centrality (weighted).
     Alluvial/Sankey diagrams use custom matplotlib Hermite S-curve ribbon fills.</p>
 
-    <p><strong>Differential analysis.</strong>
-    Each condition was analysed independently. Differential interaction counts are
-    raw differences (Δ&nbsp;=&nbsp;B&nbsp;−&nbsp;A). The volcano plot shows
-    log₂&nbsp;FC of CS and −log₁₀(min p-value) for L-R pairs significant in ≥1 condition.</p>
+    <p><strong>Condition comparison.</strong>
+    When two condition result sets are supplied, each condition has already been analysed
+    independently. Count heatmaps and pathway panels report descriptive differences
+    (Delta&nbsp;=&nbsp;B&nbsp;-&nbsp;A). The L-R evidence plot combines within-condition
+    FastCCC p-values with a Cauchy transform to prioritize interactions supported in either
+    condition and displays log2 fold-change in CS. These summaries are not a replacement for
+    a replicate-aware between-condition differential model.</p>
 
     <p><strong>Visualisation.</strong>
     All figures generated with <strong>matplotlib</strong> (Hunter, 2007) and
@@ -541,6 +720,414 @@ function showTab(tabId, btn) {
   document.getElementById('tab-' + tabId).classList.add('active');
   btn.classList.add('active');
 }
+
+function renderCelltypePathwayPanel(panel) {
+  var dataEl = panel.querySelector('[data-celltype-pathway-data]');
+  var selectEl = panel.querySelector('[data-celltype-pathway-select]');
+  var summaryEl = panel.querySelector('[data-celltype-pathway-summary]');
+  var rowsEl = panel.querySelector('[data-celltype-pathway-rows]');
+  if (!dataEl || !selectEl || !summaryEl || !rowsEl) return;
+
+  var payload = JSON.parse(dataEl.textContent);
+  var profiles = payload.profiles || [];
+  if (!profiles.length) return;
+
+  profiles.forEach(function(profile) {
+    var option = document.createElement('option');
+    option.value = profile.celltype;
+    option.textContent = profile.celltype;
+    selectEl.appendChild(option);
+  });
+  selectEl.value = payload.default_celltype || profiles[0].celltype;
+
+  function stat(value, label) {
+    var item = document.createElement('div');
+    item.className = 'ct-pathway-stat';
+    var val = document.createElement('span');
+    val.className = 'val';
+    val.textContent = value;
+    var lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = label;
+    item.appendChild(val);
+    item.appendChild(lbl);
+    return item;
+  }
+
+  function roleChip(text) {
+    var chip = document.createElement('span');
+    chip.textContent = text;
+    return chip;
+  }
+
+  function draw() {
+    var profile = profiles.find(function(item) {
+      return item.celltype === selectEl.value;
+    }) || profiles[0];
+    summaryEl.replaceChildren();
+    rowsEl.replaceChildren();
+
+    var summary = document.createElement('div');
+    summary.className = 'ct-pathway-summary';
+    summary.appendChild(stat(profile.n_interactions.toLocaleString(), 'Significant interactions'));
+    summary.appendChild(stat(profile.n_pathways.toLocaleString(), 'Pathway classes'));
+    summary.appendChild(stat(profile.total_evidence.toLocaleString(), 'Total evidence score'));
+    summaryEl.appendChild(summary);
+
+    var pathways = profile.pathways || [];
+    var maxEvidence = Math.max.apply(null, pathways.map(function(item) {
+      return item.evidence;
+    }).concat([1]));
+    pathways.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-pathway-row';
+
+      var name = document.createElement('div');
+      name.className = 'ct-pathway-name';
+      name.textContent = item.pathway;
+
+      var evidence = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-pathway-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-pathway-fill';
+      fill.style.width = ((item.evidence / maxEvidence) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var score = document.createElement('div');
+      score.className = 'ct-pathway-score';
+      score.textContent = 'Evidence ' + item.evidence.toLocaleString() + ' | strongest p ' + item.best_p;
+      evidence.appendChild(track);
+      evidence.appendChild(score);
+
+      var roles = document.createElement('div');
+      roles.className = 'ct-pathway-role';
+      roles.appendChild(roleChip(item.interactions.toLocaleString() + ' interactions'));
+      roles.appendChild(roleChip(item.outgoing.toLocaleString() + ' outgoing'));
+      roles.appendChild(roleChip(item.incoming.toLocaleString() + ' incoming'));
+
+      row.appendChild(name);
+      row.appendChild(evidence);
+      row.appendChild(roles);
+      rowsEl.appendChild(row);
+    });
+  }
+
+  selectEl.addEventListener('change', draw);
+  draw();
+}
+
+function fmtNumber(value) {
+  if (value === null || value === undefined || value === '') return '0';
+  if (typeof value === 'number') return value.toLocaleString();
+  return String(value);
+}
+
+function makeStat(value, label) {
+  var item = document.createElement('div');
+  item.className = 'ct-pathway-stat';
+  var val = document.createElement('span');
+  val.className = 'val';
+  val.textContent = fmtNumber(value);
+  var lbl = document.createElement('span');
+  lbl.className = 'lbl';
+  lbl.textContent = label;
+  item.appendChild(val);
+  item.appendChild(lbl);
+  return item;
+}
+
+function fillCelltypeSelect(selectEl, profiles, defaultCelltype) {
+  selectEl.replaceChildren();
+  profiles.forEach(function(profile) {
+    var option = document.createElement('option');
+    option.value = profile.celltype;
+    option.textContent = profile.celltype;
+    selectEl.appendChild(option);
+  });
+  selectEl.value = defaultCelltype || profiles[0].celltype;
+}
+
+function fillModeSelect(selectEl, modes) {
+  selectEl.replaceChildren();
+  Object.keys(modes || {}).forEach(function(mode) {
+    var option = document.createElement('option');
+    option.value = mode;
+    option.textContent = mode;
+    selectEl.appendChild(option);
+  });
+}
+
+function selectedProfile(profiles, celltype) {
+  return profiles.find(function(item) { return item.celltype === celltype; }) || profiles[0];
+}
+
+function emptyExplorerRow(rowsEl, message) {
+  var row = document.createElement('div');
+  row.className = 'ct-explorer-empty';
+  row.textContent = message;
+  rowsEl.appendChild(row);
+}
+
+function renderCelltypeLRPanel(panel) {
+  var payloadEl = panel.querySelector('[data-payload]');
+  var celltypeEl = panel.querySelector('[data-celltype-select]');
+  var modeEl = panel.querySelector('[data-mode-select]');
+  var summaryEl = panel.querySelector('[data-summary]');
+  var rowsEl = panel.querySelector('[data-rows]');
+  if (!payloadEl || !celltypeEl || !modeEl || !summaryEl || !rowsEl) return;
+
+  var payload = JSON.parse(payloadEl.textContent);
+  var profiles = payload.profiles || [];
+  if (!profiles.length) return;
+  fillCelltypeSelect(celltypeEl, profiles, payload.default_celltype);
+  fillModeSelect(modeEl, profiles[0].modes);
+
+  function draw() {
+    var profile = selectedProfile(profiles, celltypeEl.value);
+    fillModeSelect(modeEl, profile.modes);
+    var rows = (profile.modes || {})[modeEl.value] || [];
+    summaryEl.replaceChildren();
+    rowsEl.replaceChildren();
+
+    var summary = document.createElement('div');
+    summary.className = 'ct-pathway-summary';
+    summary.appendChild(makeStat(profile.n_interactions, 'Significant interactions'));
+    summary.appendChild(makeStat(profile.n_outgoing, 'Outgoing'));
+    summary.appendChild(makeStat(profile.n_incoming, 'Incoming'));
+    summary.appendChild(makeStat(profile.total_evidence, 'Total evidence score'));
+    summaryEl.appendChild(summary);
+
+    var maxEvidence = Math.max.apply(null, rows.map(function(row) {
+      return row.evidence || 0;
+    }).concat([1]));
+    if (!rows.length) {
+      emptyExplorerRow(rowsEl, 'No significant L-R rows for this role.');
+      return;
+    }
+    rows.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-explorer-row';
+
+      var name = document.createElement('div');
+      name.className = 'ct-explorer-name';
+      name.textContent = item.lr_pair;
+
+      var evidence = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-pathway-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-pathway-fill';
+      fill.style.width = (((item.evidence || 0) / maxEvidence) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var score = document.createElement('div');
+      score.className = 'ct-pathway-score';
+      score.textContent = 'Evidence ' + fmtNumber(item.evidence) + ' | best p ' + item.best_p;
+      evidence.appendChild(track);
+      evidence.appendChild(score);
+
+      var cs = document.createElement('div');
+      cs.className = 'ct-explorer-meta';
+      cs.textContent = 'Mean CS ' + fmtNumber(item.mean_cs) + ' | n=' + fmtNumber(item.interactions);
+
+      var meta = document.createElement('div');
+      meta.className = 'ct-explorer-meta';
+      meta.textContent = 'Partners: ' + item.partners + ' | Pathways: ' + item.pathways;
+
+      row.appendChild(name);
+      row.appendChild(evidence);
+      row.appendChild(cs);
+      row.appendChild(meta);
+      rowsEl.appendChild(row);
+    });
+  }
+
+  celltypeEl.addEventListener('change', draw);
+  modeEl.addEventListener('change', function() {
+    var profile = selectedProfile(profiles, celltypeEl.value);
+    var rows = (profile.modes || {})[modeEl.value] || [];
+    rowsEl.replaceChildren();
+    var maxEvidence = Math.max.apply(null, rows.map(function(row) {
+      return row.evidence || 0;
+    }).concat([1]));
+    if (!rows.length) {
+      emptyExplorerRow(rowsEl, 'No significant L-R rows for this role.');
+      return;
+    }
+    rows.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-explorer-row';
+      var name = document.createElement('div');
+      name.className = 'ct-explorer-name';
+      name.textContent = item.lr_pair;
+      var evidence = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-pathway-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-pathway-fill';
+      fill.style.width = (((item.evidence || 0) / maxEvidence) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var score = document.createElement('div');
+      score.className = 'ct-pathway-score';
+      score.textContent = 'Evidence ' + fmtNumber(item.evidence) + ' | best p ' + item.best_p;
+      evidence.appendChild(track);
+      evidence.appendChild(score);
+      var cs = document.createElement('div');
+      cs.className = 'ct-explorer-meta';
+      cs.textContent = 'Mean CS ' + fmtNumber(item.mean_cs) + ' | n=' + fmtNumber(item.interactions);
+      var meta = document.createElement('div');
+      meta.className = 'ct-explorer-meta';
+      meta.textContent = 'Partners: ' + item.partners + ' | Pathways: ' + item.pathways;
+      row.appendChild(name);
+      row.appendChild(evidence);
+      row.appendChild(cs);
+      row.appendChild(meta);
+      rowsEl.appendChild(row);
+    });
+  });
+  draw();
+}
+
+function renderCelltypeGenePanel(panel) {
+  var payloadEl = panel.querySelector('[data-payload]');
+  var celltypeEl = panel.querySelector('[data-celltype-select]');
+  var summaryEl = panel.querySelector('[data-summary]');
+  var rowsEl = panel.querySelector('[data-rows]');
+  if (!payloadEl || !celltypeEl || !summaryEl || !rowsEl) return;
+
+  var payload = JSON.parse(payloadEl.textContent);
+  var profiles = payload.profiles || [];
+  if (!profiles.length) return;
+  fillCelltypeSelect(celltypeEl, profiles, payload.default_celltype);
+
+  function draw() {
+    var profile = selectedProfile(profiles, celltypeEl.value);
+    var rows = profile.genes || [];
+    summaryEl.replaceChildren();
+    rowsEl.replaceChildren();
+
+    var summary = document.createElement('div');
+    summary.className = 'ct-pathway-summary';
+    summary.appendChild(makeStat(profile.n_genes, 'Unique genes'));
+    summary.appendChild(makeStat(profile.n_interactions, 'Gene instances'));
+    summary.appendChild(makeStat(profile.total_evidence, 'Total evidence score'));
+    summaryEl.appendChild(summary);
+
+    var maxEvidence = Math.max.apply(null, rows.map(function(row) {
+      return row.evidence || 0;
+    }).concat([1]));
+    rows.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-explorer-row';
+      var name = document.createElement('div');
+      name.className = 'ct-explorer-name';
+      name.textContent = item.gene;
+      var evidence = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-pathway-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-pathway-fill';
+      fill.style.width = (((item.evidence || 0) / maxEvidence) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var score = document.createElement('div');
+      score.className = 'ct-pathway-score';
+      score.textContent = 'Evidence ' + fmtNumber(item.evidence) + ' | best p ' + item.best_p;
+      evidence.appendChild(track);
+      evidence.appendChild(score);
+      var count = document.createElement('div');
+      count.className = 'ct-explorer-meta';
+      count.textContent = 'Instances ' + fmtNumber(item.interactions);
+      var partners = document.createElement('div');
+      partners.className = 'ct-explorer-meta';
+      partners.textContent = 'Partners: ' + item.partners;
+      row.appendChild(name);
+      row.appendChild(evidence);
+      row.appendChild(count);
+      row.appendChild(partners);
+      rowsEl.appendChild(row);
+    });
+  }
+
+  celltypeEl.addEventListener('change', draw);
+  draw();
+}
+
+function renderCelltypePathwayFlowPanel(panel) {
+  var payloadEl = panel.querySelector('[data-payload]');
+  var celltypeEl = panel.querySelector('[data-celltype-select]');
+  var modeEl = panel.querySelector('[data-mode-select]');
+  var summaryEl = panel.querySelector('[data-summary]');
+  var rowsEl = panel.querySelector('[data-rows]');
+  if (!payloadEl || !celltypeEl || !modeEl || !summaryEl || !rowsEl) return;
+
+  var payload = JSON.parse(payloadEl.textContent);
+  var profiles = payload.profiles || [];
+  if (!profiles.length) return;
+  fillCelltypeSelect(celltypeEl, profiles, payload.default_celltype);
+  fillModeSelect(modeEl, profiles[0].modes);
+
+  function draw() {
+    var profile = selectedProfile(profiles, celltypeEl.value);
+    var rows = (profile.modes || {})[modeEl.value] || [];
+    summaryEl.replaceChildren();
+    rowsEl.replaceChildren();
+    var summary = document.createElement('div');
+    summary.className = 'ct-pathway-summary';
+    summary.appendChild(makeStat(profile.n_interactions, 'Annotated interactions'));
+    summary.appendChild(makeStat(profile.total_cs, 'Total CS'));
+    summaryEl.appendChild(summary);
+
+    var maxCs = Math.max.apply(null, rows.map(function(row) {
+      return row.total_cs || 0;
+    }).concat([1]));
+    if (!rows.length) {
+      emptyExplorerRow(rowsEl, 'No annotated pathway rows for this role.');
+      return;
+    }
+    rows.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-explorer-row';
+      var name = document.createElement('div');
+      name.className = 'ct-explorer-name';
+      name.textContent = item.pathway;
+      var evidence = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-pathway-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-pathway-fill';
+      fill.style.width = (((item.total_cs || 0) / maxCs) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var score = document.createElement('div');
+      score.className = 'ct-pathway-score';
+      score.textContent = 'Total CS ' + fmtNumber(item.total_cs);
+      evidence.appendChild(track);
+      evidence.appendChild(score);
+      var mean = document.createElement('div');
+      mean.className = 'ct-explorer-meta';
+      mean.textContent = 'Mean CS ' + fmtNumber(item.mean_cs);
+      var count = document.createElement('div');
+      count.className = 'ct-explorer-meta';
+      count.textContent = 'Interactions ' + fmtNumber(item.interactions);
+      row.appendChild(name);
+      row.appendChild(evidence);
+      row.appendChild(mean);
+      row.appendChild(count);
+      rowsEl.appendChild(row);
+    });
+  }
+
+  celltypeEl.addEventListener('change', function() {
+    var profile = selectedProfile(profiles, celltypeEl.value);
+    fillModeSelect(modeEl, profile.modes);
+    draw();
+  });
+  modeEl.addEventListener('change', draw);
+  draw();
+}
+
+document.querySelectorAll('[data-celltype-pathway-panel]').forEach(renderCelltypePathwayPanel);
+document.querySelectorAll('[data-celltype-lr-panel]').forEach(renderCelltypeLRPanel);
+document.querySelectorAll('[data-celltype-gene-panel]').forEach(renderCelltypeGenePanel);
+document.querySelectorAll('[data-celltype-pathway-flow-panel]').forEach(renderCelltypePathwayFlowPanel);
 </script>
 </body>
 </html>

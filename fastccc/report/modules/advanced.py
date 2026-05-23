@@ -10,6 +10,7 @@ import seaborn as sns
 
 from ..loader import CCCData
 from ..utils import wrap_labels
+from .pathway_utils import keep_annotated_classifications
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -37,6 +38,12 @@ def plot_pathway_info_flow(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Pathway information flow (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Pathway information flow (no annotated pathway classifications)."
 
     sig = _attach_cs(sig, data)
 
@@ -78,6 +85,92 @@ def plot_pathway_info_flow(
     return fig, caption
 
 
+def build_celltype_pathway_flow_profiles(
+    data: CCCData, top_n: int = 12
+) -> dict:
+    """Build cell-type-specific pathway communication-score payload."""
+    sig = data.significant.copy()
+    required = {'classification', 'sender_celltype', 'receiver_celltype', 'LRI_ID'}
+    if sig.empty or not required.issubset(sig.columns):
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type pathway CS explorer: no pathway annotation data available.",
+        }
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type pathway CS explorer: no annotated pathway classifications available.",
+        }
+    sig = _attach_cs(sig, data).dropna(subset=['cs'])
+    if sig.empty:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type pathway CS explorer: no communication-score values available.",
+        }
+
+    def build_rows(sub: pd.DataFrame) -> list[dict]:
+        if sub.empty:
+            return []
+        grouped = (
+            sub.groupby('classification')
+               .agg(
+                   total_cs=('cs', 'sum'),
+                   mean_cs=('cs', 'mean'),
+                   interactions=('classification', 'size'),
+               )
+               .sort_values(['total_cs', 'interactions'], ascending=False)
+               .head(top_n)
+        )
+        return [
+            {
+                'pathway': pathway,
+                'total_cs': round(float(row['total_cs']), 4),
+                'mean_cs': round(float(row['mean_cs']), 4),
+                'interactions': int(row['interactions']),
+            }
+            for pathway, row in grouped.iterrows()
+        ]
+
+    profiles = []
+    for celltype in sorted(data.celltypes):
+        outgoing = sig[sig['sender_celltype'] == celltype]
+        incoming = sig[sig['receiver_celltype'] == celltype]
+        either = sig[
+            (sig['sender_celltype'] == celltype)
+            | (sig['receiver_celltype'] == celltype)
+        ]
+        if either.empty:
+            continue
+        profiles.append({
+            'celltype': celltype,
+            'total_cs': round(float(either['cs'].sum()), 4),
+            'n_interactions': int(len(either)),
+            'modes': {
+                'Either role': build_rows(either),
+                'Outgoing': build_rows(outgoing),
+                'Incoming': build_rows(incoming),
+            },
+        })
+
+    profiles = sorted(
+        profiles,
+        key=lambda profile: (-profile['total_cs'], profile['celltype']),
+    )
+    return {
+        'profiles': profiles,
+        'default_celltype': profiles[0]['celltype'] if profiles else '',
+        'caption': (
+            "Interactive cell-type pathway communication-score panel. Pathways are "
+            "ranked by summed CS among significant interactions involving the selected "
+            "cell type and role; unannotated interactions are excluded from pathway ranking."
+        ),
+    }
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Fig 19 – Per-pathway top L-R pairs (small multiples)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -92,6 +185,12 @@ def plot_pathway_lr_multiples(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Per-pathway L-R multiples (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Per-pathway L-R multiples (no annotated pathway classifications)."
 
     sig = _attach_cs(sig, data)
     sig['lr_pair'] = sig['ligand'] + ' → ' + sig['receptor']
@@ -393,6 +492,12 @@ def plot_pathway_crosstalk(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Pathway crosstalk (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Pathway crosstalk (no annotated pathway classifications)."
 
     sig['ct_pair'] = sig['sender_celltype'] + '|' + sig['receiver_celltype']
     top_paths = sig['classification'].value_counts().head(top_n).index.tolist()

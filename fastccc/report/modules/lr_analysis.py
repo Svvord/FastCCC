@@ -10,6 +10,7 @@ import seaborn as sns
 
 from ..loader import CCCData
 from ..utils import wrap_labels
+from .pathway_utils import keep_annotated_classifications
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -122,6 +123,127 @@ def plot_lr_dotplot(
     return fig, caption
 
 
+def _add_interaction_cs(sig: pd.DataFrame, data: CCCData) -> pd.DataFrame:
+    sig = sig.copy()
+    sig['_ct_key'] = sig['sender_celltype'] + '|' + sig['receiver_celltype']
+    str_series = data.strength.stack()
+    keys = list(zip(sig['_ct_key'], sig['LRI_ID']))
+    sig['cs'] = pd.array([str_series.get(k, np.nan) for k in keys], dtype=float)
+    return sig
+
+
+def _format_pvalue(value: float, floor: float = 1e-10) -> str:
+    return f"<{floor:.0e}" if value <= floor else f"{value:.2e}"
+
+
+def build_celltype_lr_profiles(
+    data: CCCData, top_n: int = 15
+) -> Dict:
+    """Build a cell-type-specific L-R evidence payload for HTML rendering."""
+    sig = data.significant.copy()
+    required = {
+        'sender_celltype', 'receiver_celltype', 'ligand', 'receptor',
+        'LRI_ID', 'p-value',
+    }
+    if sig.empty or not required.issubset(sig.columns):
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type L-R evidence explorer: no significant L-R interactions available.",
+        }
+
+    evidence_floor = 1e-10
+    sig = _add_interaction_cs(sig, data)
+    sig['lr_pair'] = sig['ligand'].astype(str) + ' → ' + sig['receptor'].astype(str)
+    if 'classification' not in sig.columns:
+        sig['classification'] = 'Unannotated'
+    sig['evidence'] = -np.log10(
+        pd.to_numeric(sig['p-value'], errors='coerce').clip(evidence_floor, 1.0)
+    )
+    sig = sig[np.isfinite(sig['evidence'])].copy()
+    if sig.empty:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type L-R evidence explorer: no finite p-value evidence available.",
+        }
+
+    def build_rows(sub: pd.DataFrame, celltype: str) -> list[dict]:
+        if sub.empty:
+            return []
+        grouped = (
+            sub.groupby(['LRI_ID', 'lr_pair'], dropna=False)
+               .agg(
+                   evidence=('evidence', 'sum'),
+                   best_p=('p-value', 'min'),
+                   mean_cs=('cs', 'mean'),
+                   interactions=('LRI_ID', 'size'),
+                   senders=('sender_celltype', lambda s: sorted(set(s.astype(str)))),
+                   receivers=('receiver_celltype', lambda s: sorted(set(s.astype(str)))),
+                   pathways=('classification', lambda s: sorted(set(
+                       keep_annotated_classifications(
+                           pd.DataFrame({'classification': s})
+                       )['classification'].tolist()
+                   ))),
+               )
+               .sort_values(['evidence', 'interactions'], ascending=False)
+               .head(top_n)
+        )
+        rows = []
+        for (_, lr_pair), row in grouped.iterrows():
+            partners = sorted(
+                (set(row['senders']) | set(row['receivers'])) - {celltype}
+            )
+            rows.append({
+                'lr_pair': lr_pair,
+                'evidence': round(float(row['evidence']), 3),
+                'best_p': _format_pvalue(float(row['best_p']), evidence_floor),
+                'mean_cs': round(float(row['mean_cs']), 4) if pd.notna(row['mean_cs']) else 0.0,
+                'interactions': int(row['interactions']),
+                'partners': ', '.join(partners[:6]) if partners else celltype,
+                'pathways': ', '.join(row['pathways'][:3]) if row['pathways'] else 'Unannotated',
+            })
+        return rows
+
+    profiles = []
+    for celltype in sorted(data.celltypes):
+        outgoing = sig[sig['sender_celltype'] == celltype]
+        incoming = sig[sig['receiver_celltype'] == celltype]
+        either = sig[
+            (sig['sender_celltype'] == celltype)
+            | (sig['receiver_celltype'] == celltype)
+        ]
+        if either.empty:
+            continue
+        profiles.append({
+            'celltype': celltype,
+            'n_interactions': int(len(either)),
+            'n_outgoing': int(len(outgoing)),
+            'n_incoming': int(len(incoming)),
+            'total_evidence': round(float(either['evidence'].sum()), 3),
+            'modes': {
+                'Either role': build_rows(either, celltype),
+                'Outgoing': build_rows(outgoing, celltype),
+                'Incoming': build_rows(incoming, celltype),
+            },
+        })
+
+    profiles = sorted(
+        profiles,
+        key=lambda profile: (-profile['total_evidence'], profile['celltype']),
+    )
+    return {
+        'profiles': profiles,
+        'default_celltype': profiles[0]['celltype'] if profiles else '',
+        'caption': (
+            "Interactive L-R panel. For the selected cell type and communication role, "
+            "L-R pairs are ranked by cumulative -log10(p-value) across significant "
+            "interactions; p-values are floored at 1e-10 for evidence scoring. "
+            "Mean CS is computed over displayed significant instances."
+        ),
+    }
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Fig 06 – pathway classification bar chart
 # ──────────────────────────────────────────────────────────────────────────────
@@ -135,6 +257,13 @@ def plot_classification_bar(
         ax.text(0.5, 0.5, 'No classification data.', ha='center', va='center', transform=ax.transAxes)
         ax.axis('off')
         return fig, "Classification bar (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, 'No annotated pathway classifications.', ha='center', va='center', transform=ax.transAxes)
+        ax.axis('off')
+        return fig, "Pathway classification bar: no annotated pathway classifications."
 
     counts = (
         sig.groupby('classification')
@@ -163,9 +292,120 @@ def plot_classification_bar(
     caption = (
         f"Horizontal bar chart showing the top {top_n} pathway classifications ranked by the "
         "number of significant L-R interactions detected. Classifications are derived from the "
-        "curated interaction annotation field in the LRI database."
+        "curated interaction annotation field in the LRI database; unannotated interactions "
+        "are not treated as a pathway class."
     )
     return fig, caption
+
+
+def build_celltype_pathway_profiles(
+    data: CCCData, top_n_pathways: int = 12
+) -> Dict:
+    """
+    Build compact HTML payload for cell-type-specific pathway evidence.
+
+    Pathways are ranked within each cell type by cumulative -log10 p-value over
+    significant interactions involving that cell type in either communication
+    role. Role counts retain sender and receiver participation separately.
+    """
+    sig = data.significant.copy()
+    required = {'classification', 'sender_celltype', 'receiver_celltype', 'p-value'}
+    if sig.empty or not required.issubset(sig.columns):
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': "Cell-type pathway evidence explorer: no pathway annotations available.",
+        }
+
+    evidence_floor = 1e-10
+    sig = keep_annotated_classifications(sig)
+    sig['evidence'] = -np.log10(
+        pd.to_numeric(sig['p-value'], errors='coerce').clip(evidence_floor, 1.0)
+    )
+    sig = sig[np.isfinite(sig['evidence'])].copy()
+    if sig.empty:
+        return {
+            'profiles': [],
+            'default_celltype': '',
+            'caption': (
+                "Cell-type pathway evidence explorer: no annotated pathway "
+                "classifications available."
+            ),
+        }
+
+    profiles = []
+    for celltype in sorted(data.celltypes):
+        involved_mask = (
+            (sig['sender_celltype'] == celltype)
+            | (sig['receiver_celltype'] == celltype)
+        )
+        involved = sig[involved_mask]
+        if involved.empty:
+            continue
+
+        total = (
+            involved.groupby('classification')
+                    .agg(
+                        evidence=('evidence', 'sum'),
+                        interactions=('classification', 'size'),
+                        best_p=('p-value', 'min'),
+                    )
+        )
+        outgoing = (
+            sig[sig['sender_celltype'] == celltype]
+            .groupby('classification')
+            .size()
+        )
+        incoming = (
+            sig[sig['receiver_celltype'] == celltype]
+            .groupby('classification')
+            .size()
+        )
+
+        total['outgoing'] = outgoing.reindex(total.index, fill_value=0)
+        total['incoming'] = incoming.reindex(total.index, fill_value=0)
+        total = total.sort_values(
+            ['evidence', 'interactions'], ascending=False
+        )
+        shown = total.head(top_n_pathways)
+
+        profiles.append({
+            'celltype': celltype,
+            'total_evidence': round(float(total['evidence'].sum()), 3),
+            'n_interactions': int(len(involved)),
+            'n_pathways': int(total.shape[0]),
+            'pathways': [
+                {
+                    'pathway': pathway,
+                    'evidence': round(float(row['evidence']), 3),
+                    'interactions': int(row['interactions']),
+                    'outgoing': int(row['outgoing']),
+                    'incoming': int(row['incoming']),
+                    'best_p': _format_pvalue(float(row['best_p']), evidence_floor),
+                }
+                for pathway, row in shown.iterrows()
+            ],
+        })
+
+    profiles = sorted(
+        profiles,
+        key=lambda profile: (-profile['total_evidence'], profile['celltype']),
+    )
+    default_celltype = profiles[0]['celltype'] if profiles else ''
+    return {
+        'profiles': profiles,
+        'default_celltype': default_celltype,
+        'caption': (
+            "Interactive cell-type pathway panel. Within the selected cell type, "
+            "pathway classifications are ranked by cumulative -log10(p-value) "
+            "across significant interactions in which that cell type participates "
+            f"as sender or receiver; p-values are floored at {evidence_floor:.0e} "
+            "for this evidence score. Outgoing and incoming counts describe the "
+            "cell type's communication role; autocrine interactions contribute to "
+            "both role counts. Unannotated interactions are excluded from pathway "
+            "ranking rather than shown as a pathway."
+        ),
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -180,6 +420,12 @@ def plot_pathway_celltype_heatmap(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Pathway heatmap (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Pathway heatmap: no annotated pathway classifications."
 
     sig['ct_pair'] = sig['sender_celltype'] + ' → ' + sig['receiver_celltype']
 
@@ -221,6 +467,7 @@ def plot_pathway_celltype_heatmap(
     caption = (
         f"Heatmap of the top {top_n_pathways} pathway classifications across the top "
         f"{top_n_pairs} sender–receiver cell-type pairs. Cell values indicate the number "
-        "of significant ligand–receptor interactions belonging to each pathway class."
+        "of significant ligand–receptor interactions belonging to each annotated pathway "
+        "class; unannotated interactions are excluded from this pathway view."
     )
     return fig, caption

@@ -120,12 +120,26 @@ def _bezier_chord(ax, t1s, t1e, t2s, t2e, color, R=1.0, alpha=0.4):
 
 
 def plot_chord_diagram(
-    data: CCCData, colors_dict: Dict, weight: str = 'count'
+    data: CCCData, colors_dict: Dict, weight: str = 'count',
+    max_chords: int = 180,
 ) -> Tuple[plt.Figure, str]:
 
     mat = data.counts_matrix.values.astype(float) if weight == 'count' else data.strength_matrix.values.astype(float)
     labels = data.celltypes
     n = len(labels)
+    n_total_chords = int(np.count_nonzero(mat))
+    if n_total_chords > max_chords:
+        ranked = [
+            (mat[i, j], i, j)
+            for i in range(n)
+            for j in range(n)
+            if mat[i, j] > 0
+        ]
+        ranked = sorted(ranked, reverse=True)[:max_chords]
+        display_mat = np.zeros_like(mat)
+        for value, i, j in ranked:
+            display_mat[i, j] = value
+        mat = display_mat
 
     totals = mat.sum(axis=1) + mat.sum(axis=0)
     for i in range(n):
@@ -237,10 +251,16 @@ def plot_chord_diagram(
     )
     fig.tight_layout()
 
+    chord_note = (
+        f" To preserve readability, the {max_chords} highest-weight directed connections "
+        f"are displayed from {n_total_chords} non-zero connections."
+        if n_total_chords > max_chords else ""
+    )
     caption = (
         f"Chord diagram summarising cell–cell communication weighted by interaction {weight}. "
-        "Each arc segment represents a cell type; arc width is proportional to total interactions. "
-        "Chords connect communicating pairs and are coloured by the sender cell type."
+        "Each arc segment represents a cell type; arc width is proportional to the displayed "
+        "connection weight. "
+        f"Chords connect communicating pairs and are coloured by the sender cell type.{chord_note}"
     )
     return fig, caption
 

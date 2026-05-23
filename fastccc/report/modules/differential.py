@@ -1,4 +1,4 @@
-"""Module 7 – Differential CCC analysis: heatmap and volcano plot between two conditions."""
+"""Module 7 - Condition-comparison summaries between two FastCCC result sets."""
 
 from typing import Tuple
 
@@ -10,6 +10,7 @@ import seaborn as sns
 
 from ..loader import CCCData
 from ..utils import wrap_labels
+from .pathway_utils import keep_annotated_classifications
 
 
 def _cauchy_combine(pa: float, pb: float) -> float:
@@ -83,14 +84,14 @@ def _build_diff_table(
         if 'classification' in src.significant.columns:
             annot = src.significant[['LRI_ID', 'classification', 'ligand', 'receptor']].drop_duplicates('LRI_ID')
             df = df.merge(annot, on='LRI_ID', how='left')
-            df['classification'] = df['classification'].fillna('Unknown')
+            df['classification'] = df['classification'].fillna('Unannotated')
             break
 
     return df
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Fig 22 – Differential interaction count heatmap
+# Fig 22 - Condition-comparison interaction count heatmap
 # ──────────────────────────────────────────────────────────────────────────────
 
 def plot_diff_heatmap(
@@ -109,10 +110,10 @@ def plot_diff_heatmap(
 
     if diff.values.sum() == 0:
         fig, ax = plt.subplots()
-        ax.text(0.5, 0.5, 'No differential interactions found.',
+        ax.text(0.5, 0.5, 'No condition-comparison interactions found.',
                 ha='center', va='center', transform=ax.transAxes)
         ax.axis('off')
-        return fig, "Differential heatmap (no data)."
+        return fig, "Condition-comparison heatmap (no data)."
 
     labels = wrap_labels(all_ct)
     n = len(labels)
@@ -135,22 +136,24 @@ def plot_diff_heatmap(
     ax.set_xlabel(f'Receiver cell type', labelpad=8)
     ax.set_ylabel(f'Sender cell type', labelpad=8)
     ax.set_title(
-        f'Differential Interaction Count\n{name_b} − {name_a}',
+        f'Condition Comparison of Interaction Counts\n{name_b} - {name_a}',
         pad=10,
     )
     fig.tight_layout()
 
     caption = (
-        f"Heatmap of the differential interaction count per sender–receiver cell-type pair "
-        f"({name_b} minus {name_a}). Red cells indicate more significant interactions in "
-        f"{name_b}; blue cells indicate more in {name_a}. Values are raw count differences "
-        f"(p < {pval_threshold} in each condition independently)."
+        f"Heatmap comparing the number of significant interactions per ordered "
+        f"sender-receiver cell-type pair ({name_b} minus {name_a}). Red cells indicate "
+        f"more FastCCC-positive interactions in {name_b}; blue cells indicate more in "
+        f"{name_a}. Values are descriptive count differences after independent per-condition "
+        f"analysis (p < {pval_threshold}); they are not p-values for a replicate-aware "
+        "between-condition contrast."
     )
     return fig, caption
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Fig 23 – Differential L-R volcano plot
+# Fig 23 - Condition-comparison L-R evidence plot
 # ──────────────────────────────────────────────────────────────────────────────
 
 def plot_diff_volcano(
@@ -163,10 +166,10 @@ def plot_diff_volcano(
 
     if df.empty:
         fig, ax = plt.subplots()
-        ax.text(0.5, 0.5, 'No data for differential analysis.',
+        ax.text(0.5, 0.5, 'No data for condition comparison.',
                 ha='center', va='center', transform=ax.transAxes)
         ax.axis('off')
-        return fig, "Differential volcano plot (no data)."
+        return fig, "Condition-comparison evidence plot (no data)."
 
     # ── Classify ──────────────────────────────────────────────────────────────
     def _classify(row):
@@ -284,7 +287,7 @@ def plot_diff_volcano(
     ylabel = f'−log₁₀(Cauchy p-value)  [capped at {y_cap:.0f}]' if n_capped > 0 \
              else '−log₁₀(Cauchy combined p-value)'
     ax.set_ylabel(ylabel, fontsize=9)
-    ax.set_title(f'Differential L-R Interactions — {name_b} vs. {name_a}', pad=10)
+    ax.set_title(f'L-R Condition Comparison - {name_b} vs. {name_a}', pad=10)
     ax.set_ylim(bottom=-y_cap * 0.03, top=y_cap * 1.08)
     ax.legend(loc='upper left', fontsize=8, frameon=True,
               framealpha=0.9, edgecolor='#dddddd')
@@ -301,20 +304,21 @@ def plot_diff_volcano(
                 if n_capped > 0 else "")
 
     caption = (
-        f"Volcano plot of differential ligand–receptor interactions between "
-        f"{name_b} and {name_a}. The x-axis shows log₂ fold-change in communication "
-        f"score (CS); the y-axis shows −log₁₀ of the Cauchy-combined p-value across both "
-        f"conditions (more powerful than min(p) and consistent with FastCCC's combination "
-        f"strategy). Blue points (n={n_a:,}) are significant only in {name_a}; "
+        f"Evidence plot comparing ligand-receptor interactions between {name_b} and "
+        f"{name_a}. The x-axis shows log2 fold-change in communication score (CS). "
+        f"The y-axis shows -log10 of a Cauchy-combined within-condition FastCCC p-value "
+        f"used to prioritize interactions supported in either result set; it is not a "
+        "formal p-value for a between-condition differential model. "
+        f"Blue points (n={n_a:,}) are significant only in {name_a}; "
         f"red points (n={n_b:,}) are significant only in {name_b}; "
         f"grey points (n={n_sh:,}) are shared between conditions.{cap_note} "
-        f"The top {top_n_label} condition-specific interactions by significance are labelled."
+        f"The top {top_n_label} condition-specific interactions by comparison evidence are labelled."
     )
     return fig, caption
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Fig 24 – Differential pathway activity bar chart
+# Fig 24 - Pathway comparison bar chart
 # ──────────────────────────────────────────────────────────────────────────────
 
 def plot_diff_pathway_bar(
@@ -329,7 +333,7 @@ def plot_diff_pathway_bar(
         sig = data.significant
         if 'classification' not in sig.columns or sig.empty:
             return pd.Series(dtype=float)
-        return sig['classification'].value_counts()
+        return keep_annotated_classifications(sig)['classification'].value_counts()
 
     cnt_a = _pathway_counts(data_a)
     cnt_b = _pathway_counts(data_b)
@@ -372,7 +376,7 @@ def plot_diff_pathway_bar(
     ax_right.set_yticks(range(len(diff_sorted)))
     ax_right.set_yticklabels(wrap_labels(diff_sorted.index.tolist(), 38), fontsize=7)
     ax_right.set_xlabel(f'Δ interactions ({name_b} − {name_a})', fontsize=9)
-    ax_right.set_title('Differential Pathway Activity (Δ)', fontsize=10, fontweight='bold')
+    ax_right.set_title('Pathway Count Difference (Delta)', fontsize=10, fontweight='bold')
     ax_right.axvline(0, color='#555', lw=0.8)
     ax_right.spines['left'].set_visible(False)
     ax_right.tick_params(axis='y', length=0)
@@ -380,10 +384,10 @@ def plot_diff_pathway_bar(
     fig.tight_layout()
 
     caption = (
-        f"Comparison of pathway-level interaction counts between {name_a} (blue) and "
+        f"Descriptive comparison of pathway-level interaction counts between {name_a} (blue) and "
         f"{name_b} (red). Left panel: absolute interaction counts per pathway per condition. "
         f"Right panel: difference (Δ = {name_b} − {name_a}), with red bars indicating "
-        f"pathways enriched in {name_b} and blue bars enriched in {name_a}."
+        f"more FastCCC-positive interactions in {name_b} and blue bars more in {name_a}."
     )
     return fig, caption
 

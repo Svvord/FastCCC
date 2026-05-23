@@ -68,11 +68,27 @@ poetry install
 >
 > We recommend creating a dedicated `FastCCC` virtual environment with Python version 3.11 and installing dependencies using [Poetry].
 
+### Method 4: Installing developing version via uv
+Alternatively, you can use the [uv] package manager for a faster setup. To
+install uv, follow the instructions [here](https://docs.astral.sh/uv/getting-started/installation/).
+
+```bash
+git clone https://github.com/Svvord/FastCCC.git
+cd ./FastCCC
+uv sync
+```
+
+{: .highlight-title }
+> Tips
+>
+> We recommend creating a dedicated `FastCCC` virtual environment with Python version 3.11 and installing dependencies using [uv].
+
 
 [FastCCC]: https://github.com/Svvord/FastCCC
 [CellxGene]: https://cellxgene.cziscience.com/
 [pyproject.toml]: https://github.com/Svvord/FastCCC/blob/main/pyproject.toml
 [Poetry]: https://python-poetry.org/
+[uv]: https://docs.astral.sh/uv/
 [CellxGene-Census]: https://chanzuckerberg.github.io/cellxgene-census/
 [`conda`]: https://www.anaconda.com/download
 [PyPI]: https://pypi.org/

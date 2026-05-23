@@ -90,6 +90,40 @@ fastccc.infer_query.infer_query_workflow(
 )
 ```
 
+To produce the reference HTML report directly against the shipped healthy liver
+panel:
+
+```python
+from fastccc.report import generate_reference_report
+
+report_path = generate_reference_report(
+    database_path          = database_file_path,
+    query_counts_file_path = tissue_query_file,
+    infer_result_dir       = save_path,
+    output_dir             = './report/liver_query_disease_exp1/',
+    reference_tissue       = 'liver',
+    reference_root         = './reference',
+    meta_key               = 'cell_type',
+    query_name             = 'Disease Liver Query',
+)
+```
+
+If `query_infer_results.tsv` already exists and you only want to rerender the
+HTML report, use `generate_infer_report`:
+
+```python
+from fastccc.report import generate_infer_report
+
+report_path = generate_infer_report(
+    infer_result_dir = save_path,
+    database_path    = database_file_path,
+    output_dir       = './report/liver_query_disease_exp1/',
+    query_name       = 'Disease Liver Query',
+    reference_tissue = 'liver',
+    reference_root   = './reference',
+)
+```
+
 <blockquote class="new-title"> <p>output</p>
 <div class="highlight"><pre class="highlight"><code><span class="sr">2025-02-02 15:11:50</span> | INFO     | Start inferring by using CCC reference: liver
 <span class="sr">2025-02-02 15:11:50</span> | INFO     | Reference min_percentile = 0.1
@@ -185,5 +219,59 @@ fastccc.infer_query.infer_query_workflow(
 
     ## Use celltype mapping dict!
     celltype_mapping_dict = celltype_mapping_dict,
+)
+```
+
+To generate the reference report from these existing inference outputs:
+
+```python
+from fastccc.report import generate_infer_report
+
+report_path = generate_infer_report(
+    infer_result_dir = save_path,
+    database_path    = database_file_path,
+    output_dir       = '../report/case_study/breast_tumor_atlas_nichenetv1.1.1',
+    query_name       = 'Breast Tumor Atlas',
+    reference_path   = reference_path,
+    reference_name   = 'Breast Reference',
+)
+```
+
+### Example3: Build a custom reference from one group and compare another group
+
+When one dataset contains both a baseline/control group and a case/treatment
+group, build a custom reference from the baseline group and compare the case
+group against that reference. Use raw counts for both steps.
+
+```python
+import scanpy as sc
+import fastccc.build_reference
+from fastccc.report import generate_reference_report
+
+adata = sc.read_h5ad('../data/clean/cohort_raw_counts.h5ad')
+control = adata[adata.obs['condition'] == 'control'].copy()
+case = adata[adata.obs['condition'] == 'disease'].copy()
+
+database_file_path = './db/CPDBv5.0.0/'
+reference_root = './reference/'
+
+fastccc.build_reference.build_reference_workflow(
+    database_file_path         = database_file_path,
+    reference_counts_file_path = control,
+    celltype_file_path         = None,
+    reference_name             = 'cohort_control',
+    save_path                  = reference_root,
+    meta_key                   = 'cell_type',
+)
+
+report_path = generate_reference_report(
+    database_path          = database_file_path,
+    query_counts_file_path = case,
+    infer_result_dir       = './results/disease_vs_cohort_control/',
+    output_dir             = './report/disease_vs_cohort_control/',
+    reference_path         = './reference/cohort_control',
+    meta_key               = 'cell_type',
+    query_name             = 'Disease',
+    reference_name         = 'Cohort Control',
 )
 ```

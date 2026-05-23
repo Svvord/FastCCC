@@ -89,6 +89,39 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
 .run-params td { background: none; padding: 3px 0; border: none; color: #222; }
 .run-params tr { border: none; }
 .run-params code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+.scientific-note { background: #fff8e8; border: 1px solid #eed49c; border-left: 4px solid #d89718;
+                   border-radius: 4px; padding: 12px 15px; margin: 16px 0; line-height: 1.6; color: #4b402b; }
+.audit-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 16px; }
+.audit-pill { background: #f0f5fb; border: 1px solid #dce4ef; border-radius: 4px;
+              min-width: 120px; padding: 8px 12px; }
+.audit-pill .val { display: block; color: #2c5f8a; font-size: 18px; font-weight: 700; }
+.audit-pill .lbl { display: block; color: #666; font-size: 11px; }
+.audit-table td:last-child { word-break: break-word; }
+.ct-panel { border: 1px solid #dce4ef; border-radius: 5px; background: #fbfcfe;
+            padding: 16px 18px; margin: 14px 0 8px; }
+.ct-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+              margin-bottom: 14px; }
+.ct-toolbar label { color: #555; font-size: 12px; font-weight: 600; }
+.ct-toolbar select { min-width: min(360px, 100%); border: 1px solid #b8c7db;
+                     border-radius: 4px; background: white; color: #222;
+                     padding: 6px 9px; font-size: 12px; }
+.ct-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.ct-stat { border: 1px solid #e0e7f0; border-radius: 4px; background: white;
+           padding: 7px 10px; min-width: 118px; }
+.ct-stat .val { display: block; color: #2c5f8a; font-size: 15px; font-weight: 700; }
+.ct-stat .lbl { display: block; color: #666; font-size: 10.5px; }
+.ct-row { border-top: 1px solid #e8edf4; padding: 9px 0; display: grid;
+          grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) 170px 170px;
+          gap: 12px; align-items: center; }
+.ct-name { color: #222; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-meta { color: #555; font-size: 10.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ct-track { background: #e8eef6; border-radius: 3px; height: 14px; overflow: hidden; }
+.ct-fill { background: #d9794f; height: 100%; min-width: 2px; }
+.ct-score { color: #555; font-size: 10.5px; margin-top: 3px; }
+.ct-empty { color: #777; font-size: 11px; padding: 10px 0; border-top: 1px solid #e8edf4; }
+@media (max-width: 780px) {
+  .ct-row { grid-template-columns: 1fr; gap: 7px; }
+}
 
 /* ── Methods ── */
 .methods { background: #fafafa; border: 1px solid #ddd; border-radius: 4px;
@@ -124,8 +157,9 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
   <a class="nav-btn" href="#overview">Global Trends</a>
   <a class="nav-btn" href="#heatmaps">Sender–Receiver</a>
   <a class="nav-btn" href="#lr-pairs">L-R Pairs</a>
-  <a class="nav-btn" href="#cs-scatter">CS Scatter</a>
+  <a class="nav-btn" href="#cs-scatter">CS Distribution</a>
   <a class="nav-btn" href="#pathways">Pathway Breakdown</a>
+  <a class="nav-btn" href="#celltype-reference">Cell-Type Explorer</a>
   <a class="nav-btn" href="#methods">Methods</a>
 </div>
 
@@ -139,8 +173,9 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
     <li><a href="#overview">Global CCC Trends (Figs A–B)</a></li>
     <li><a href="#heatmaps">Sender–Receiver Heatmaps (Figs C–D)</a></li>
     <li><a href="#lr-pairs">Top L-R Pair Dotplots (Figs E–F)</a></li>
-    <li><a href="#cs-scatter">Communication Score Scatter (Fig G)</a></li>
+    <li><a href="#cs-scatter">Communication Score Distribution (Fig G)</a></li>
     <li><a href="#pathways">Pathway Breakdown (Fig H)</a></li>
+    <li><a href="#celltype-reference">Cell-Type Reference Explorer (Fig I)</a></li>
     <li><a href="#methods">Methods &amp; Parameters</a></li>
   </ol>
 </div>
@@ -199,7 +234,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
   {% endif %}
 
   <p style="margin-top:16px; line-height:1.75; font-size:13px;">
-    FastCCC compared <em>{{ query_name }}</em> against a pre-built <em>{{ reference_name }}</em>
+    FastCCC compared <em>{{ query_name }}</em> against the selected <em>{{ reference_name }}</em>
     reference panel, testing <strong>{{ '{:,}'.format(n_tested) }}</strong> L-R interactions
     across <strong>{{ '{:,}'.format(n_ct_pairs) }}</strong> cell-type pairs.
     Of the <strong>{{ '{:,}'.format(n_in_reference) }}</strong> interactions matched to the reference:
@@ -214,10 +249,24 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
     <table>
       <tr><th>Query condition</th><td>{{ query_name }}</td></tr>
       <tr><th>Reference panel</th><td>{{ reference_name }}</td></tr>
+      {% if reference_panel %}
+      <tr><th>Reference source</th><td>{{ reference_panel.source_label }}</td></tr>
+      <tr><th>Reference panel ID</th><td><code>{{ reference_panel.reference_name }}</code></td></tr>
+      <tr><th>Reference cell types in config</th><td>{{ reference_panel.n_celltypes }}</td></tr>
+      <tr><th>Reference min percentile</th><td>{{ reference_panel.min_percentile }}</td></tr>
+      {% endif %}
       <tr><th>LRI database</th><td>{{ database_name }}</td></tr>
       <tr><th>Report generated</th><td>{{ report_date }}</td></tr>
       <tr><th>FastCCC version</th><td>{{ version }}</td></tr>
     </table>
+  </div>
+
+  <div class="scientific-note">
+    <strong>Interpretation scope.</strong>
+    Reference inference assigns query significance and query-versus-reference trend labels
+    after aligning eligible cell types and L-R interactions to the selected reference panel.
+    Interactions without a matched reference context remain query results and should not be
+    read as Up or Down reference trends.
   </div>
 </div>
 
@@ -307,12 +356,12 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
 
 
 <!-- ══════════════════════════════════════════════════════
-     5. CS SCATTER
+     5. CS DISTRIBUTION
      ══════════════════════════════════════════════════ -->
 <div class="section" id="cs-scatter">
-  <h2>5. Communication Score Scatter</h2>
+  <h2>5. Communication Score Distribution</h2>
 
-  <h3>Fig G — Query CS vs Reference Significance</h3>
+  <h3>Fig G — Query CS by Reference Trend</h3>
   <div class="fig-block">
     {% if figs.cs_scatter[0] %}
     <img src="data:image/png;base64,{{ figs.cs_scatter[0] }}" alt="Fig G">
@@ -343,13 +392,46 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
 
 
 <!-- ══════════════════════════════════════════════════════
-     7. METHODS
+     7. CELL-TYPE REFERENCE EXPLORER
+     ══════════════════════════════════════════════════ -->
+<div class="section" id="celltype-reference">
+  <h2>7. Cell-Type Reference Explorer</h2>
+
+  <h3>Fig I — Cell-Type Trend, L-R, and Pathway Profiles</h3>
+  {% if celltype_reference.profiles %}
+  <div class="fig-block">
+    <div class="ct-panel" data-reference-celltype-panel>
+      <div class="ct-toolbar">
+        <label>Cell type</label>
+        <select data-celltype-select></select>
+        <label>Role</label>
+        <select data-role-select></select>
+        <label>View</label>
+        <select data-view-select>
+          <option value="lr">L-R pairs</option>
+          <option value="pathways">Pathways</option>
+        </select>
+      </div>
+      <div data-summary></div>
+      <div data-rows></div>
+      <script type="application/json" data-payload>{{ celltype_reference | tojson }}</script>
+    </div>
+    <p class="fig-caption"><strong>Fig I.</strong> {{ celltype_reference.caption }}</p>
+  </div>
+  {% else %}
+  <p class="skip-note">{{ celltype_reference.caption }}</p>
+  {% endif %}
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     8. METHODS
      ══════════════════════════════════════════════════ -->
 <div class="section" id="methods">
-  <h2>7. Methods &amp; Parameters</h2>
+  <h2>8. Methods &amp; Parameters</h2>
   <div class="methods">
     <p><strong>Reference panel construction.</strong>
-    The reference was built from <em>{{ reference_name }}</em> cells using
+    The selected <em>{{ reference_name }}</em> panel was prepared using
     <code>build_reference_workflow</code>, which applies rank-based preprocessing
     (<code>rank_preprocess</code>) and computes per-gene PMFs via FFT-based convolution
     across all cell types. L-R pair null distributions are derived analytically without
@@ -364,15 +446,41 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
     <p><strong>Trend categories.</strong>
     <em>Up</em>: significant in {{ query_name }} but not {{ reference_name }} (query-specific enrichment).
     <em>Down</em>: significant in {{ reference_name }} but not {{ query_name }} (reference-specific, lost in query).
-    <em>Both Sig</em>: significant in both (shared disease-relevant interaction).
+    <em>Both Sig</em>: significant in both (shared reference-supported interaction).
     <em>Both NS</em>: not significant in either (background).</p>
 
     <p><strong>Visualisation.</strong>
     All figures were generated with Matplotlib/Seaborn at {{ version }}.
     Heatmaps show the top cell types by total interaction involvement.
     Dotplots rank L-R pairs by total communication score.
-    The CS scatter jitters the binary reference-significance axis for readability.</p>
+    The CS distribution panel uses log1p(CS) violin and box plots to compare
+    communication-score ranges across trend categories.</p>
   </div>
+</div>
+
+<div class="section" id="figure-audit">
+  <h2>9. Figure Generation Audit</h2>
+  <p style="line-height:1.6;">
+    Figure panels are generated independently so an unsupported or empty panel does not mask
+    the remaining reference report.
+  </p>
+  <div class="audit-summary">
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.generated }}</span><span class="lbl">Figures generated</span></div>
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.skipped }}</span><span class="lbl">Panels skipped</span></div>
+    <div class="audit-pill"><span class="val">{{ figure_audit.counts.failed }}</span><span class="lbl">Panels failed</span></div>
+  </div>
+  {% if figure_audit.unavailable %}
+  <table class="audit-table">
+    <thead><tr><th>Artifact</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for item in figure_audit.unavailable %}
+      <tr><td><code>{{ item.artifact }}</code></td><td>{{ item.status }}</td><td>{{ item.note }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="line-height:1.6;">All requested reference-report panels were generated.</p>
+  {% endif %}
 </div>
 
 </div><!-- .content -->
@@ -383,5 +491,143 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; 
 </div>
 
 </div><!-- .page -->
+<script>
+function fmtNumber(value) {
+  if (value === null || value === undefined || value === '') return '0';
+  if (typeof value === 'number') return value.toLocaleString();
+  return String(value);
+}
+
+function makeStat(value, label) {
+  var item = document.createElement('div');
+  item.className = 'ct-stat';
+  var val = document.createElement('span');
+  val.className = 'val';
+  val.textContent = fmtNumber(value);
+  var lbl = document.createElement('span');
+  lbl.className = 'lbl';
+  lbl.textContent = label;
+  item.appendChild(val);
+  item.appendChild(lbl);
+  return item;
+}
+
+function fillSelect(selectEl, values) {
+  selectEl.replaceChildren();
+  values.forEach(function(value) {
+    var option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    selectEl.appendChild(option);
+  });
+}
+
+function emptyRow(rowsEl, message) {
+  var row = document.createElement('div');
+  row.className = 'ct-empty';
+  row.textContent = message;
+  rowsEl.appendChild(row);
+}
+
+function renderReferenceCelltypePanel(panel) {
+  var payloadEl = panel.querySelector('[data-payload]');
+  var celltypeEl = panel.querySelector('[data-celltype-select]');
+  var roleEl = panel.querySelector('[data-role-select]');
+  var viewEl = panel.querySelector('[data-view-select]');
+  var summaryEl = panel.querySelector('[data-summary]');
+  var rowsEl = panel.querySelector('[data-rows]');
+  if (!payloadEl || !celltypeEl || !roleEl || !viewEl || !summaryEl || !rowsEl) return;
+
+  var payload = JSON.parse(payloadEl.textContent);
+  var profiles = payload.profiles || [];
+  if (!profiles.length) return;
+  fillSelect(celltypeEl, profiles.map(function(profile) { return profile.celltype; }));
+  celltypeEl.value = payload.default_celltype || profiles[0].celltype;
+  fillSelect(roleEl, Object.keys(profiles[0].lr || {'Either role': []}));
+
+  function selectedProfile() {
+    return profiles.find(function(profile) {
+      return profile.celltype === celltypeEl.value;
+    }) || profiles[0];
+  }
+
+  function drawRows(rows, view) {
+    rowsEl.replaceChildren();
+    var maxCs = Math.max.apply(null, rows.map(function(row) {
+      return row.total_cs || 0;
+    }).concat([1]));
+    if (!rows.length) {
+      emptyRow(rowsEl, 'No rows available for this cell type and role.');
+      return;
+    }
+    rows.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'ct-row';
+      var name = document.createElement('div');
+      name.className = 'ct-name';
+      name.textContent = view === 'pathways' ? item.pathway : item.lr_pair;
+
+      var score = document.createElement('div');
+      var track = document.createElement('div');
+      track.className = 'ct-track';
+      var fill = document.createElement('div');
+      fill.className = 'ct-fill';
+      fill.style.width = (((item.total_cs || 0) / maxCs) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      var scoreText = document.createElement('div');
+      scoreText.className = 'ct-score';
+      scoreText.textContent = 'Total query CS ' + fmtNumber(item.total_cs);
+      score.appendChild(track);
+      score.appendChild(scoreText);
+
+      var count = document.createElement('div');
+      count.className = 'ct-meta';
+      count.textContent = 'Interactions ' + fmtNumber(item.interactions);
+
+      var extra = document.createElement('div');
+      extra.className = 'ct-meta';
+      if (view === 'pathways') {
+        extra.textContent = 'Up ' + fmtNumber(item.up) + ' | Down ' + fmtNumber(item.down);
+      } else {
+        extra.textContent = 'Mean CS ' + fmtNumber(item.mean_cs) + ' | ' + item.trends;
+      }
+
+      row.appendChild(name);
+      row.appendChild(score);
+      row.appendChild(count);
+      row.appendChild(extra);
+      rowsEl.appendChild(row);
+    });
+  }
+
+  function draw() {
+    var profile = selectedProfile();
+    var roles = Object.keys(profile.lr || {'Either role': []});
+    if (roles.indexOf(roleEl.value) === -1) {
+      fillSelect(roleEl, roles);
+    }
+    var view = viewEl.value;
+    var rows = ((profile[view] || {})[roleEl.value]) || [];
+    summaryEl.replaceChildren();
+
+    var summary = document.createElement('div');
+    summary.className = 'ct-summary';
+    summary.appendChild(makeStat(profile.n_interactions, 'In-reference interactions'));
+    summary.appendChild(makeStat(profile.total_cs, 'Total query CS'));
+    ['Up', 'Both Sig', 'Down', 'Both NS'].forEach(function(trend) {
+      summary.appendChild(makeStat((profile.trend_counts || {})[trend] || 0, trend));
+    });
+    summaryEl.appendChild(summary);
+    drawRows(rows, view);
+  }
+
+  celltypeEl.addEventListener('change', draw);
+  roleEl.addEventListener('change', draw);
+  viewEl.addEventListener('change', draw);
+  draw();
+}
+
+document.querySelectorAll('[data-reference-celltype-panel]').forEach(renderReferenceCelltypePanel);
+</script>
 </body>
 </html>

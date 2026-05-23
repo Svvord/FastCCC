@@ -7,7 +7,7 @@ nav_order: 5
 
 # Automated HTML Report
 
-After running FastCCC, a single function call generates a self-contained HTML report you can open in any browser. The report includes 24 figures organized into thematic sections. If you have two groups of cells (e.g., treated vs. control), the report adds a fourth differential comparison tab automatically.
+After running FastCCC, a single function call generates a self-contained HTML report you can open in any browser. The report includes static figures plus interactive cell-type explorers organized into thematic sections. If you have two groups of cells (e.g., treated vs. control), the report adds a fourth condition-comparison tab automatically.
 
 ---
 
@@ -65,7 +65,7 @@ The output `report.html` is fully self-contained — all figures are embedded in
 
 ## Two-condition comparison (optional)
 
-If you want to compare two groups, run FastCCC separately on each group and pass all three result directories to `generate_report`. FastCCC will add a differential analysis tab to the report.
+If you want to compare two groups, run FastCCC separately on each group and pass all three result directories to `generate_report`. FastCCC will add a condition-comparison tab to the report.
 
 ```python
 import glob, os
@@ -102,7 +102,7 @@ task_a   = run_and_get_task_id(adata_a, './results/treated/')
 adata_b = adata[adata.obs['condition'] == 'control'].copy()
 task_b   = run_and_get_task_id(adata_b, './results/control/')
 
-# ── Generate report with differential tab ────────────────────────────────────
+# ── Generate report with condition-comparison tab ────────────────────────────
 report_path = generate_report(
     result_dir    = './results/all/',
     task_id       = task_all,
@@ -123,28 +123,38 @@ print('Report saved to:', report_path)
 
 The report will have four tabs: **All Cells**, **Treated**, **Control**, and **Treated vs Control**.
 
+The two-condition page is descriptive. It compares independently analysed FastCCC
+result sets using significant interaction counts, communication-score changes, and
+within-condition FastCCC evidence. Replicate-aware differential claims require a
+between-condition statistical model matched to the study design.
+
 ---
 
 ## What the report contains
 
-Each tab contains seven sections (21 figures total):
+Each sample tab contains seven sections. Several global summaries are paired with interactive cell-type explorers so users can inspect the same evidence within an individual sender, receiver, or either-role context.
 
-| Section | Figures | What it shows |
-|---------|---------|---------------|
+| Section | Figures / panels | What it shows |
+|---------|------------------|---------------|
 | Global CCC Overview | 1–4 | Interaction count heatmap, communication strength heatmap, chord diagram, top sender/receiver bar chart |
-| L-R Pair Analysis | 5–7 | Top L-R dot plot, pathway classification, pathway × cell-type heatmap |
-| Pathway Enrichment | 8–10 | Ligand ORA, receptor ORA, TF regulon heatmap |
-| Cell-Type Profiles | 11–13 | I/O scatter, sender–pathway heatmap, interaction flow |
-| Network Analyses | 14–17 | Network centrality, Sankey flow, autocrine/paracrine, bipartite L-R graph |
-| Advanced L-R | 18–21 | Pathway info flow, per-pathway L-R multiples, L-R specificity heatmap, CS violin |
+| L-R Pair Analysis | 5, 5B, 6, 6B, 7 | Top L-R dot plot, cell-type L-R evidence explorer, pathway classification distribution, cell-type pathway evidence explorer, pathway × cell-type heatmap |
+| Pathway Enrichment | 8, 8B, 9, 9B, 10 | Ligand ORA, receptor ORA, cell-type ligand/receptor gene evidence explorers, TF regulon heatmap |
+| Cell-Type Profiles | 11–13, 25–26 | I/O scatter, sender/receiver pathway specificity heatmaps, outgoing/incoming interaction flow |
+| Network Analyses | 14–17, 27–28 | Network centrality, Sankey flow, autocrine/paracrine, bipartite L-R graph, asymmetry and community summaries |
+| Advanced L-R | 18, 18B, 19–21, 29–30 | Pathway information flow, cell-type pathway CS explorer, per-pathway L-R multiples, L-R specificity heatmap, CS violin, L-R co-occurrence, pathway crosstalk |
 
-The differential tab (when two conditions are provided) adds three more figures:
+The condition-comparison tab (when two conditions are provided) adds three more figures:
 
 | Figure | What it shows |
 |--------|---------------|
-| 22 | Differential interaction count heatmap (Condition B − Condition A) |
-| 23 | Volcano plot of differential L-R interactions |
-| 24 | Differential pathway activity bar chart |
+| 22 | Significant interaction count comparison (Condition B minus Condition A) |
+| 23 | L-R comparison evidence plot with CS fold-change and within-condition evidence |
+| 24 | Pathway interaction count comparison |
+
+All sample tabs also include a figure-generation audit. If a panel cannot be
+generated because a dependency, annotation field, network-backed ORA request, or
+required value is unavailable, the report records the skipped/failed panel and
+keeps the rest of the report usable.
 
 ---
 
@@ -165,6 +175,7 @@ generate_report(
     pval_threshold          = 0.05,    # significance cutoff
     top_n_lr                = 30,      # number of L-R pairs shown in dot plot
     top_n_celltypes         = 20,      # number of cell types shown in bar charts
+    max_chords              = 180,     # maximum directed connections shown in chord plots
     gene_sets               = ['KEGG_2021_Human', 'GO_Biological_Process_2023'],
     dpi                     = 300,     # figure resolution
     save_individual_figures = True,    # also save each figure as a separate PNG
@@ -200,4 +211,3 @@ Common choices:
 | `GO_Biological_Process_2023` | Gene Ontology biological process terms |
 | `Reactome_2022` | Reactome pathway database |
 | `WikiPathway_2023_Human` | WikiPathways |
-

@@ -10,6 +10,7 @@ import seaborn as sns
 
 from ..loader import CCCData
 from ..utils import wrap_labels
+from .pathway_utils import keep_annotated_classifications
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -93,6 +94,12 @@ def plot_sender_pathway_heatmap(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Sender pathway heatmap (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Sender pathway heatmap: no annotated pathway classifications."
 
     top_ct   = sig['sender_celltype'].value_counts().head(top_n_ct).index.tolist()
     top_path = sig['classification'].value_counts().head(top_n_pathways).index.tolist()
@@ -213,6 +220,12 @@ def plot_receiver_pathway_heatmap(
         fig, ax = plt.subplots()
         ax.axis('off')
         return fig, "Receiver pathway heatmap (no data)."
+
+    sig = keep_annotated_classifications(sig)
+    if sig.empty:
+        fig, ax = plt.subplots()
+        ax.axis('off')
+        return fig, "Receiver pathway heatmap: no annotated pathway classifications."
 
     top_ct   = sig['receiver_celltype'].value_counts().head(top_n_ct).index.tolist()
     top_path = sig['classification'].value_counts().head(top_n_pathways).index.tolist()
