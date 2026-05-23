@@ -3,7 +3,6 @@ import numpy as np
 from .distrib import Distribution, get_pvalue_from_pmf
 from collections import Counter
 import itertools
-import timeit
 from .ccc_utils import get_current_memory, create_significant_interactions_df
 from . import preprocess
 from . import score
@@ -690,9 +689,7 @@ def calculate_key_interactions_pvalue(mean_pmf, interactions, interactions_stren
     p2_items = p2.values[np.where(percent_analysis)]
     
     
-    start = timeit.default_timer()
     pval_pmfs = (p1_items & p2_items) / 2
-    stop = timeit.default_timer()
     
     mean_gt = interactions_strength.values[np.where(percent_analysis)]
     est = []
@@ -727,9 +724,7 @@ def calculate_key_interactions_pvalue_multiply_version(mean_pmf, interactions, i
     p2_items = p2.values[np.where(percent_analysis)]
     
     
-    start = timeit.default_timer()
     pval_pmfs = p1_items * p2_items
-    stop = timeit.default_timer()
     
     mean_gt = interactions_strength.values[np.where(percent_analysis)]
     est = []
