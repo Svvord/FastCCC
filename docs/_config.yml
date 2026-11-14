@@ -1,5 +1,5 @@
 title: FastCCC
-description: FastCCC's tutorial.
+description: "FastCCC: permutation-free cell-cell communication analysis for single-cell RNA-seq, with healthy tissue reference panels that show which ligand-receptor interactions are up or down versus normal."
 theme: just-the-docs
 
 baseurl: /FastCCC

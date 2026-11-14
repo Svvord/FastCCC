@@ -11,6 +11,7 @@ import pickle
 import itertools
 from scipy.stats import norm
 import os
+import glob
 import tomllib
 from collections import Counter
 from .distrib_digit import get_minimum_distribution_for_digit
@@ -341,6 +342,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
     logger.info("Inferring sig. boundaries.")
     mean_pmfs = calculate_mean_pmfs(counts_df, labels_df, complex_table, ref_gene_pmf_dict)
     pval_pmfs = get_valid_pval_pmfs(mean_pmfs, interactions_strength, interactions, percents_analysis)
+    _save_null_pmfs(mean_pmfs, interactions, save_path)   # compact null distributions for the result explorer
 
     up_bound_list = []
     low_bound_list = []
@@ -403,6 +405,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
         receptor_low = np.maximum(ref_p2.loc[index, col] * (1-1/k*1.96), 0) if ref_flag else np.nan
         receptor_high = ref_p2.loc[index, col] * (1+1/k*1.96) if ref_flag else np.nan
         ref_sig = (ref_pvals.loc[index, col] < 0.05) if ref_flag else np.nan # 参考是否显著
+        ref_cs = float(ref_CS.loc[index, col]) if (ref_flag and col in ref_CS.columns) else np.nan  # reference communication score
         ligand_range = f"{ligand_low}-{ligand_high}" if ref_flag else np.nan
         receptor_range = f"{receptor_low}-{receptor_high}" if ref_flag else np.nan
 
@@ -453,7 +456,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 ref_perc, ref_ligand_perc, ref_receptor_perc, 
                 ligand_IS, ligand_range, 
                 receptor_IS, receptor_range,
-                bool(prediction[-1]), ref_sig, comparison
+                bool(prediction[-1]), ref_sig, comparison, ref_cs
             ))
         else:   
             results.append((
@@ -463,7 +466,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 ref_perc, ref_ligand_perc, ref_receptor_perc, 
                 ligand_IS, ligand_range, 
                 receptor_IS, receptor_range,
-                bool(prediction[-1]), ref_sig, comparison
+                bool(prediction[-1]), ref_sig, comparison, ref_cs
             ))
     
     for index, col in zip(*np.where(np.logical_and(ref_pvals < 0.05, percents_analysis.loc[common_ind, common_col] == False))):
@@ -523,7 +526,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 True, ref_ligand_perc, ref_receptor_perc, 
                 ligand_IS, ligand_range, 
                 receptor_IS, receptor_range,
-                False, True, "Down"
+                False, True, "Down", float(ref_CS.loc[index, col]) if col in ref_CS.columns else np.nan
             ))
         else:
             results.append((
@@ -534,7 +537,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 True, ref_ligand_perc, ref_receptor_perc, 
                 ligand_IS, ligand_range, 
                 receptor_IS, receptor_range,
-                False, True, "Down"
+                False, True, "Down", float(ref_CS.loc[index, col]) if col in ref_CS.columns else np.nan
             ))
 
     if debug_mode:
@@ -548,7 +551,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 'above_expr_threshold_ref', 'ligand_expr_percent_ref', 'receptor_expr_percent_ref',
                 'ligand_CS_component', 'ligand_CS_CI',
                 'receptor_CS_component', 'receptor_CS_CI',
-                'is_significant', 'is_significant_ref', 'trend_vs_ref'
+                'is_significant', 'is_significant_ref', 'trend_vs_ref', 'ref_comm_score'
             ]
         )
     else:
@@ -562,7 +565,7 @@ def compare_with_reference(counts_df, labels_df, complex_table, interactions, re
                 'above_expr_threshold_ref', 'ligand_expr_percent_ref', 'receptor_expr_percent_ref',
                 'ligand_CS_component', 'ligand_CS_CI',
                 'receptor_CS_component', 'receptor_CS_CI',
-                'is_significant', 'is_significant_ref', 'trend_vs_ref'
+                'is_significant', 'is_significant_ref', 'trend_vs_ref', 'ref_comm_score'
             ]
         )
 
@@ -619,7 +622,17 @@ def calculate_adjust_factor(query, reference_path, save_path, debug_mode=False):
         mean_by_std_list.append(mean_/std_)
     k = np.nanmean(mean_by_std_list)
     logger.debug(f"k={k}")
+    k_raw = float(k)
     k = max(3, k)
+    try:   # calibration diagnostics for the result explorer (never fail the inference)
+        import json as _json
+        hk_df.to_csv(f'{save_path}/query_hk_ranks.tsv', sep='\t', index_label='gene')
+        with open(f'{save_path}/query_calibration.json', 'w', encoding='utf-8') as fh:
+            _json.dump({'k': float(k), 'k_raw': k_raw, 'n_hk_genes': int(len(hk_df)),
+                        'bins': [{'ref_mean': (None if np.isnan(m) else float(m)), 'rmsd': (None if np.isnan(sd) else float(sd))}
+                                 for m, sd in zip(mean_list, std_list)]}, fh)
+    except Exception as err:
+        logger.debug(f"calibration diagnostics not saved: {err}")
     
     if debug_mode:
         import matplotlib.pyplot as plt 
@@ -678,8 +691,41 @@ def update_reference_for_first_time_activation(reference_path):
     logger.success(f"Reference panel data updated.")
 
 
+
+def _save_null_pmfs(mean_pmfs, interactions, save_path):
+    """Write ``query_null_pmfs.npz``: the null distribution of every (query cell type, ligand or
+    receptor) pair used in the comparison, on the 0.01 rank grid, trimmed to its support.
+    Only consumed by the result explorer (evidence plots); failures never stop the inference."""
+    try:
+        needed = sorted(set(interactions['multidata_1_id']).union(interactions['multidata_2_id']))
+        needed = [m for m in needed if m in mean_pmfs.columns]
+        keys, offsets, lengths, chunks = [], [], [], []
+        for celltype in mean_pmfs.index:
+            for mid in needed:
+                dist = mean_pmfs.loc[celltype, mid]
+                if dist is None or (isinstance(dist, float) and np.isnan(dist)):
+                    continue
+                arr = np.asarray(dist.get_pmf_array(), dtype=np.float64)
+                nz = np.flatnonzero(arr > 1e-9)
+                if nz.size == 0:
+                    continue
+                a, b = int(nz[0]), int(nz[-1]) + 1
+                keys.append(f"{celltype}\t{mid}"); offsets.append(a); lengths.append(b - a)
+                chunks.append(arr[a:b].astype(np.float32))
+        if not keys:
+            return
+        np.savez_compressed(
+            os.path.join(save_path, 'query_null_pmfs.npz'),
+            keys=np.array(keys), offsets=np.array(offsets, dtype=np.int32), lengths=np.array(lengths, dtype=np.int32),
+            values=np.concatenate(chunks), grid_step=np.array([0.01]),
+        )
+    except Exception as err:
+        logger.warning(f"Null distributions for the explorer were not saved: {err}")
+
 def infer_query_workflow(database_file_path, reference_path, query_counts_file_path, celltype_file_path, save_path, celltype_mapping_dict=None, meta_key=None, debug_mode=False):
     
+    from .resources import legacy_database_path
+    database_file_path = legacy_database_path(database_file_path)
     with open(f'{reference_path}/config.toml', 'rb') as f:
         config = tomllib.load(f)
         logger.info(f"Start inferring by using CCC reference: {config['reference_name']}")
@@ -693,7 +739,7 @@ def infer_query_workflow(database_file_path, reference_path, query_counts_file_p
     if not os.path.exists(save_path):
         os.makedirs(save_path)
         logger.success(f"Query save dir is created.")
-    else:
+    elif glob.glob(os.path.join(save_path, 'query_*.tsv')):
         logger.warning(f"{save_path} already exists, all files will be overwritten")
 
 

@@ -231,7 +231,7 @@ def generate_infer_report(
     logger.info(
         f"Loaded {data.n_tested:,} interactions — "
         f"{data.n_significant:,} significant in {query_name}, "
-        f"{data.n_in_reference:,} in reference"
+        f"{data.n_in_reference:,} with a reference value"
     )
 
     figure_audit = []

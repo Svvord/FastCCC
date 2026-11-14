@@ -1,0 +1,4 @@
+interface:
+  display_name: "FastCCC"
+  short_description: "Cell-cell communication analysis for single-cell RNA-seq, with Up/Down calls versus healthy tissue references"
+  default_prompt: "Use $fastccc to run a FastCCC cell-cell communication analysis or compare a dataset against a healthy tissue reference."

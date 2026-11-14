@@ -1,0 +1,16 @@
+{
+  "name": "CPDBv5.0.0",
+  "species": "human",
+  "version": "5.0.0",
+  "source": "CellPhoneDB v5.0.0 (cellphonedb-data)",
+  "citation": "Troulé K. et al. CellPhoneDB v5: inferring cell–cell communication from single-cell multiomics data. Nat Protoc 20, 3412–3440 (2025); Efremova M. et al. CellPhoneDB: inferring cell–cell communication from combined expression of multi-subunit ligand–receptor complexes. Nat Protoc 15, 1484–1506 (2020).",
+  "license": null,
+  "url": "https://github.com/ventolab/cellphonedb-data",
+  "notes": "Default database. Carries the CellPhoneDB pathway classification and directionality.",
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 2911,
+  "n_genes": 1354,
+  "n_complexes": 362,
+  "has_classification": true
+}

@@ -1,0 +1,16 @@
+{
+  "name": "liana_lrdb",
+  "species": "human",
+  "version": "retrieved 2026-11-12",
+  "source": "LRdb of SingleCellSignalR (via OmniPath)",
+  "citation": "Cabello-Aguilar S. et al. Nucleic Acids Res 48, e55 (2020). Dimitrov D. et al. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022); resources curated via OmniPath (Türei D. et al. Mol Syst Biol 17, e9923, 2021).",
+  "license": "see LIANA+/OmniPath terms for this resource",
+  "url": "https://github.com/scverse/liana/blob/main/src/liana/resource/omni_resource.csv",
+  "notes": "Converted one to one from LIANA+'s omni_resource.csv retrieved 2026-11-12; gene symbols of that table; no pathway classification.",
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 3228,
+  "n_genes": 1525,
+  "n_complexes": 1,
+  "has_classification": false
+}

@@ -1,9 +1,10 @@
 ---
 title: Basic usage
 layout: default
-nav_order: 3
+nav_order: 1
 has_children: true
-permalink: usage
+parent: Legacy API
+description: "Legacy: the standard analysis with the original function and its inputs, outputs and code snippets."
 ---
 
 <script type="text/javascript" async

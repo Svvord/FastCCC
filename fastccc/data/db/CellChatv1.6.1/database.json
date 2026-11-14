@@ -1,0 +1,16 @@
+{
+  "name": "CellChatv1.6.1",
+  "species": "human",
+  "version": "1.6.1",
+  "source": "CellChatDB (human) from CellChat v1.6.1",
+  "citation": "Jin S. et al. Inference and analysis of cell-cell communication using CellChat. Nat Commun 12, 1088 (2021).",
+  "license": "GPL-3.0",
+  "url": "https://github.com/sqjin/CellChat",
+  "notes": null,
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 1103,
+  "n_genes": 342,
+  "n_complexes": 65,
+  "has_classification": false
+}

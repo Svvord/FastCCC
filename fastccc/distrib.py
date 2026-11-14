@@ -49,6 +49,13 @@ def get_norm_cdf_func(loc, scale):
         return norm.cdf(x, loc, scale)
     return analytic_func
 
+
+def get_norm_sf_func(loc, scale):
+    # survival function: accurate in the far tail where 1 - cdf rounds to 0
+    def analytic_func(x):
+        return norm.sf(x, loc, scale)
+    return analytic_func
+
 def get_norm_minimum_cdf_func(locs, scales):
     def analytic_func(x, locs=locs, scales=scales):
         F = []
@@ -94,6 +101,7 @@ class Distribution:
         self.is_complex_analytic = False
         if self.is_normal_type:
             self.cdf_analytic_func = get_norm_cdf_func(loc, scale)
+            self.sf_analytic_func = get_norm_sf_func(loc, scale)
             self.min_cdf_non_zero = self.loc - 5 * self.scale
             self.min_cdf_one = self.loc + 5 * self.scale
             self.support_length = self.min_cdf_one - self.min_cdf_non_zero
@@ -176,8 +184,8 @@ class Distribution:
             return self
         
         if n >= 30 or self.is_normal_type:
-            new_loc = self.loc * n
-            new_scale = np.sqrt(n) * self.scale
+            new_loc = self.get_mean() * n            # loc/scale are computed lazily; the accessors fill them
+            new_scale = np.sqrt(n) * self.get_std()
             return Distribution(dtype='normal', loc=new_loc, scale=new_scale)
         
         else:
@@ -398,14 +406,24 @@ def get_distribution_from_samples(samples, is_log1p=True):
 
 
 def get_pvalue_from_pmf(value, pmf):
+    """Upper-tail probability of ``value`` under the null distribution ``pmf``.
+
+    The tail is computed directly rather than as ``1 - cdf``: ``1 - cdf`` rounds to 0
+    (or to a noise-sized number) once the tail is below 1e-16, and FFT-convolved pmf
+    arrays can even make it slightly negative. Analytic (normal) nulls use the survival
+    function; discretised nulls sum the bins at and beyond the value. The result is
+    clamped to [0, 1].
+    """
     if pmf.is_analytic:
-        pvalue =  1 - pmf.cdf_analytic_func(value)
+        sf = getattr(pmf, 'sf_analytic_func', None)
+        pvalue = sf(value) if sf is not None else 1 - pmf.cdf_analytic_func(value)
     elif pmf.is_complex_analytic:
         pvalue = get_pvalue_from_complex_pmf(value, pmf)
     else:
         y = pmf.get_pmf_array()
-        pvalue = 1 - np.sum(y[:int(np.ceil(value / precision))])
-    return pvalue
+        k = max(0, int(np.ceil(value / precision)))
+        pvalue = np.sum(y[k:])
+    return float(min(1.0, max(0.0, pvalue)))
 
 
 def get_precise_pmf_array(pmf, n_segment=100):
@@ -433,6 +451,10 @@ def get_pvalue_from_complex_pmf(value, pmf):
     if value <= pmf.min_cdf_non_zero * 2:
         return 1.0
     elif value >= pmf.min_cdf_one * 2:
+        # beyond the discretised support: the sum of two independent normals is normal, use its exact tail
+        lig, rec = pmf.ligand, pmf.receptor
+        if lig.loc is not None and rec.loc is not None and lig.scale is not None and rec.scale is not None:
+            return float(norm.sf(value, lig.loc + rec.loc, np.sqrt(lig.scale ** 2 + rec.scale ** 2)))
         return 0.0
     else:
         p_value = 0.0
@@ -444,8 +466,9 @@ def get_pvalue_from_complex_pmf(value, pmf):
             discrete_pmf = pmf.ligand
 
         precise_pmf_array, support_domain = get_precise_pmf_array(discrete_pmf)
+        sf = getattr(accurate_pmf, 'sf_analytic_func', None)
         for x, p in zip(support_domain, precise_pmf_array):
-            p_value += p * (1 - accurate_pmf.cdf_analytic_func(value - x))
+            p_value += p * (sf(value - x) if sf is not None else 1 - accurate_pmf.cdf_analytic_func(value - x))
         return p_value
     
     
@@ -521,25 +544,76 @@ def split_integer_by_probability(N, probabilities):
             
 def get_quantile_pmf_for_n_iid_distribution(distribution, n, quantile=0.9, log=False):
     '''
-    $
-    f_{X_i} = \frac{n!}{(n-i)!(i-1)!} 
-              * [F(x_i)]^(i-1)
-              * f(x_i)
-              * [1 - F(x_i)]^(n-i)
-    $
+    PMF of the k-th order statistic (k = floor(quantile * (n - 1)) + 1) of n i.i.d. draws from a
+    discrete distribution, on the distribution's grid. For discrete variables ties are common,
+    so the continuous density formula does not apply; the exact result only involves the cdf
+    (eq. 16 of the paper):
+        P(X_(k) <= x) = integral_0^{F(x)} Beta(k, n - k + 1) density = I_{F(x)}(k, n - k + 1),
+    evaluated here in closed form with the regularised incomplete beta function and
+    differenced along the support. ``_quantile_pmf_grid`` is the original implementation
+    (eqs. 17-18: the Beta cdf tabulated on 100,000 grid points); it agrees with the closed form
+    to about 1e-3 in total variation up to a few thousand cells and drifts to a few percent for
+    cell types of 50,000 cells and more.
     '''
+    from scipy.special import betainc
+    k = order_statistic_index(n, quantile)
+    F = np.minimum(np.cumsum(distribution.pmf), 1.0)
+    cdf = betainc(k, n - k + 1, F)
+    pmf = np.diff(cdf, prepend=0.0)
+    return np.clip(pmf, a_min=0, a_max=None)
+
+
+def _quantile_pmf_grid(distribution, n, quantile=0.9):
+    '''Original tabulated implementation (eqs. 17-18 of the paper), kept as a reference for the tests.'''
     assert 0 < quantile and quantile < 1, "Quantile should be 0-1."
     i = max(int(quantile*(n-1) + 1), 1)
     fxi_cdf = get_fxi_cdf(n, i)
-
     section = split_integer_by_probability(m+1, distribution.pmf)
     section = np.int32(np.cumsum(section))
-    # Prepend 0.0 so that section[k]=0 maps to CDF=0 instead of fxi_cdf[-1]=1.0
-    # (negative indexing trap: when a gene is always expressed, pmf[0]=0 causes
-    # section[0]=0, and fxi_cdf[0-1]=fxi_cdf[-1]=1.0, making the PMF sum >> 1)
     fxi_cdf_padded = np.concatenate([[0.0], fxi_cdf])
     cdf = fxi_cdf_padded[section]
     pmf = np.diff(cdf, prepend=0)
     pmf = np.clip(pmf, a_min=0, a_max=None)
     return pmf
+# ── standalone helpers: exact distributions of discrete order statistics ──────
+
+def order_statistic_index(n, quantile):
+    """FastCCC's convention: the ``quantile`` of ``n`` draws is the i-th smallest with i = floor(quantile * (n - 1)) + 1."""
+    assert 0 < quantile < 1, "Quantile should be 0-1."
+    return max(int(quantile * (n - 1) + 1), 1)
+
+
+def order_statistic_pmf(values, probs, n, k=None, quantile=None):
+    """Exact pmf of the k-th smallest of ``n`` i.i.d. draws from a discrete distribution.
+
+    ``values`` are the support points (any real numbers), ``probs`` their probabilities. Give
+    either ``k`` (1 = minimum, n = maximum) or ``quantile`` (converted with
+    :func:`order_statistic_index`). Ties between draws are handled exactly because the result
+    only involves the cdf: P(X_(k) <= x) = P(Binomial(n, F(x)) >= k) = I_F(x)(k, n - k + 1).
+    Returns ``(values, pmf)`` with the values sorted.
+    """
+    from scipy.special import betainc
+    values = np.asarray(values, dtype=float); probs = np.asarray(probs, dtype=float)
+    assert values.shape == probs.shape and values.ndim == 1, "values and probs must be 1-d and of equal length"
+    assert np.all(probs >= 0) and abs(probs.sum() - 1) < 1e-8, "probs must be non-negative and sum to 1"
+    if (k is None) == (quantile is None):
+        raise ValueError("give exactly one of k or quantile")
+    if k is None:
+        k = order_statistic_index(n, quantile)
+    assert 1 <= k <= n, "k must be between 1 and n"
+    order = np.argsort(values, kind='stable'); values, probs = values[order], probs[order]
+    F = np.minimum(np.cumsum(probs), 1.0)
+    cdf = betainc(k, n - k + 1, F)                 # regularised incomplete beta = P(Binomial(n, F) >= k)
+    pmf = np.diff(cdf, prepend=0.0)
+    return values, np.clip(pmf, 0.0, None)
+
+
+def distribution_from_values(values, probs):
+    """A :class:`Distribution` on FastCCC's grid (bin width ``precision``) from support points and probabilities."""
+    values = np.asarray(values, dtype=float); probs = np.asarray(probs, dtype=float)
+    assert np.all(values >= 0) and np.max(values) <= max_value_4_log1p, f"values must lie in [0, {max_value_4_log1p}]"
+    idx = np.rint(values / precision).astype(int)
+    arr = np.zeros(idx.max() + 1)
+    np.add.at(arr, idx, probs)
+    return Distribution(dtype='other', pmf_array=arr / arr.sum(), is_align=True)
 #=================================================================

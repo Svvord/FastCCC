@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use FastCCC in your work, please cite the Nature Communications article below."
+type: software
+title: "FastCCC"
+abstract: "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single-cell transcriptomics studies."
+authors:
+  - family-names: Hou
+    given-names: Siyu
+  - family-names: Ma
+    given-names: Wenjing
+  - family-names: Zhou
+    given-names: Xiang
+repository-code: "https://github.com/Svvord/FastCCC"
+url: "https://svvord.github.io/FastCCC/"
+license: MIT
+keywords:
+  - single-cell
+  - scRNA-seq
+  - cell-cell communication
+  - ligand-receptor interactions
+  - permutation-free
+  - reference-based
+preferred-citation:
+  type: article
+  title: "FastCCC: a permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies"
+  authors:
+    - family-names: Hou
+      given-names: Siyu
+    - family-names: Ma
+      given-names: Wenjing
+    - family-names: Zhou
+      given-names: Xiang
+  journal: "Nature Communications"
+  volume: 16
+  start: 11428
+  year: 2025
+  doi: "10.1038/s41467-025-66272-z"
+  url: "https://www.nature.com/articles/s41467-025-66272-z"

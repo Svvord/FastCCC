@@ -409,6 +409,8 @@ def save_config(save_path):
 
 
 def build_reference_workflow(database_file_path, reference_counts_file_path, celltype_file_path, reference_name, save_path, meta_key=None, min_percentile = 0.1, debug_mode=False, for_uploading=False):
+    from .resources import legacy_database_path
+    database_file_path = legacy_database_path(database_file_path)
     logger.info(f"Start building CCC reference.")
 
     reference_config['reference_name'] = reference_name

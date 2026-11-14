@@ -1,0 +1,16 @@
+{
+  "name": "liana_kirouac2010",
+  "species": "human",
+  "version": "retrieved 2026-11-12",
+  "source": "Kirouac et al. 2010 ligand–receptor pairs (via OmniPath)",
+  "citation": "Kirouac D.C. et al. Mol Syst Biol 6, 417 (2010). Dimitrov D. et al. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022); resources curated via OmniPath (Türei D. et al. Mol Syst Biol 17, e9923, 2021).",
+  "license": "see LIANA+/OmniPath terms for this resource",
+  "url": "https://github.com/scverse/liana/blob/main/src/liana/resource/omni_resource.csv",
+  "notes": "Converted one to one from LIANA+'s omni_resource.csv retrieved 2026-11-12; gene symbols of that table; no pathway classification.",
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 152,
+  "n_genes": 222,
+  "n_complexes": 0,
+  "has_classification": false
+}

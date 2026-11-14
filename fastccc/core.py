@@ -67,8 +67,11 @@ def Cauchy_combination_of_statistical_analysis_methods(
     meta_key = None, 
     select_list = [], 
     filter_ = False,
-    use_DEG = False
+    use_DEG = False,
+    small_p_method = 'acat'
 ):
+    from .resources import legacy_database_path
+    database_file_path = legacy_database_path(database_file_path)
     # Generate unique task ID.
     task_id = generate_task_id()
     logger.info(f"Task id is {task_id}.")
@@ -167,7 +170,7 @@ def Cauchy_combination_of_statistical_analysis_methods(
                 __save_file(interactions_strength, pvals, percents_analysis, save_path, task_id=task_id, method_key=method_key)
                 logger.success("CS scoring module calculation done.")      
     logger.success("All scoring modules calculation done.")  
-    cauthy_combine(save_path, task_id=task_id)
+    cauthy_combine(save_path, task_id=task_id, small_p_method=small_p_method)
     logger.success("Cauthy combination done.") 
 
     pvals = pd.read_csv(os.path.join(save_path, f'{task_id}_Cauchy_pvals.tsv'), index_col=0, sep='\t')
@@ -227,6 +230,8 @@ def statistical_analysis_method(
     use_DEG = False,
     save_path = None
 ):
+    from .resources import legacy_database_path
+    database_file_path = legacy_database_path(database_file_path)
     # Generate unique task ID.
     task_id = generate_task_id()
     logger.info(f"Task id is {task_id}.")

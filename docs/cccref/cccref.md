@@ -1,9 +1,11 @@
 ---
 title: Human CCC reference
 layout: default
-nav_order: 4
+nav_order: 2
 has_children: true
 permalink: cccref
+parent: Legacy API
+description: "Legacy: reference-based analysis with build_reference_workflow and infer_query_workflow."
 ---
 
 <script type="text/javascript" async

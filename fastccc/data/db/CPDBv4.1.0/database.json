@@ -1,0 +1,16 @@
+{
+  "name": "CPDBv4.1.0",
+  "species": "human",
+  "version": "4.1.0",
+  "source": "CellPhoneDB v4.1.0 (cellphonedb-data)",
+  "citation": "Garcia-Alonso L., Lorenzi V. et al. Single-cell roadmap of human gonadal development. Nature 607, 540–547 (2022); Efremova M. et al. Nat Protoc 15, 1484–1506 (2020).",
+  "license": null,
+  "url": "https://github.com/ventolab/cellphonedb-data",
+  "notes": null,
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 2923,
+  "n_genes": 1354,
+  "n_complexes": 363,
+  "has_classification": false
+}

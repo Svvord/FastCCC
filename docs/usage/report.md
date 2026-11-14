@@ -3,6 +3,7 @@ title: Automated Report
 layout: default
 parent: Basic usage
 nav_order: 5
+grand_parent: Legacy API
 ---
 
 # Automated HTML Report

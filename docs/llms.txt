@@ -1,0 +1,25 @@
+# FastCCC
+
+> FastCCC infers cell-cell communication (ligand-receptor signalling between cell types) from single-cell RNA-seq without permutations, scales to millions of cells, and compares a dataset against built-in healthy tissue reference panels (19 tissues, 16 million cells) or a control group, labelling every interaction Up or Down. Python package and command line; results come as tables plus a self-contained interactive explorer page. Paper: Hou, Ma & Zhou, Nature Communications 16, 11428 (2025), doi:10.1038/s41467-025-66272-z.
+
+Install: `pip install fastccc` (Python 3.11-3.13). Commands: `fastccc inspect`, `fastccc run DATA -c CELLTYPE_COLUMN`, `fastccc ref DATA -c COL -r liver|PANEL_DIR|condition:control:case`, `fastccc map`, `fastccc build-ref`, `fastccc panels`, `fastccc explore`, `fastccc skill install`. Agent skill: `npx skills add Svvord/FastCCC`.
+
+## Docs
+
+- [Quick start](https://svvord.github.io/FastCCC/quickstart.html): three commands from an .h5ad to an interactive result.
+- [Compare with healthy tissue](https://svvord.github.io/FastCCC/use-cases/compare-cell-cell-communication-with-healthy-tissue.html): which communications a sample gained, lost or kept versus healthy tissue, a control group or your own reference (one command to build it).
+- [A million cells or more](https://svvord.github.io/FastCCC/use-cases/cell-cell-communication-million-cells.html): the CellPhoneDB score with an analytic p-value; the paper's speed, memory and agreement numbers.
+- [FastCCC compared with other tools](https://svvord.github.io/FastCCC/use-cases/fastccc-vs-cellphonedb-cellchat-liana.html): side by side with CellPhoneDB, CellChat, LIANA+ and MultiNicheNet, and when to choose FastCCC.
+- [Reference comparison](https://svvord.github.io/FastCCC/guides/reference.html): healthy tissue panels, cell-type mapping, Up and Down calls, comparability.
+- [Result explorer](https://svvord.github.io/FastCCC/guides/explorer.html): every panel of the interactive page.
+- [Databases guide](https://svvord.github.io/FastCCC/guides/databases.html): choosing among the 22 packaged ligand-receptor databases, mouse data, importing your own.
+- [Command line](https://svvord.github.io/FastCCC/reference/cli.html) and [Python API](https://svvord.github.io/FastCCC/reference/api.html).
+- [Output files](https://svvord.github.io/FastCCC/reference/outputs.html): every file and column.
+- [Databases](https://svvord.github.io/FastCCC/reference/databases.html): the 22 ligand-receptor databases (CellPhoneDB, CellChatDB, NicheNet, LIANA+ consensus and sources, mouse), `--db`, importing your own.
+- [How FastCCC works](https://svvord.github.io/FastCCC/methods/how-it-works.html): analytic null distributions, sixteen scoring modules, reference calibration.
+- [Distribution toolkit](https://svvord.github.io/FastCCC/methods/distributions.html): exact distributions of sums, means and order statistics of discrete random variables (ties included); `order_statistic_pmf`, usable on its own.
+- [FAQ](https://svvord.github.io/FastCCC/reference/faq.html).
+
+## Source
+
+- [GitHub](https://github.com/Svvord/FastCCC) · [PyPI](https://pypi.org/project/fastccc/) · [Changelog](https://github.com/Svvord/FastCCC/blob/main/CHANGELOG.md)

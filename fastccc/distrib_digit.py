@@ -25,6 +25,12 @@ def get_norm_cdf_func(loc, scale):
         return norm.cdf(x, loc, scale)
     return analytic_func
 
+def get_norm_sf_func(loc, scale):
+    def analytic_func(x):
+        return norm.sf(x, loc, scale)
+    return analytic_func
+
+
 def get_norm_minimum_cdf_func(locs, scales):
     def analytic_func(x, locs=locs, scales=scales):
         F = []
@@ -71,6 +77,7 @@ class Distribution_digit:
         self.is_complex_analytic = False
         if self.is_normal_type:
             self.cdf_analytic_func = get_norm_cdf_func(loc, scale)
+            self.sf_analytic_func = get_norm_sf_func(loc, scale)
             self.min_cdf_non_zero = self.loc - 5 * self.scale
             self.min_cdf_one = self.loc + 5 * self.scale
             self.support_length = self.min_cdf_one - self.min_cdf_non_zero

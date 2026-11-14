@@ -1,0 +1,16 @@
+{
+  "name": "NicheNetv1.1.1",
+  "species": "human",
+  "version": "1.1.1",
+  "source": "NicheNet ligand–receptor network, nichenetr v1.1.1",
+  "citation": "Browaeys R., Saelens W., Saeys Y. NicheNet: modeling intercellular communication by linking ligands to target genes. Nat Methods 17, 159–162 (2020).",
+  "license": "GPL-3.0",
+  "url": "https://github.com/saeyslab/nichenetr",
+  "notes": null,
+  "gene_id": "symbol",
+  "built": "2026-11-12",
+  "n_interactions": 12019,
+  "n_genes": 1430,
+  "n_complexes": 0,
+  "has_classification": false
+}

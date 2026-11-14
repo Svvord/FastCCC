@@ -1,12 +1,32 @@
 [project]
 name = "fastccc"
-version = "1.0.1"
-description = "A permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies."
+version = "1.1.0"
+description = "Cell-cell communication analysis for single-cell RNA-seq: permutation-free, scales to millions of cells, and compares your data against healthy tissue reference panels."
 authors = [
-    {name = "Svvord", email = "cchousiyu@163.com"}
+    {name = "Siyu Hou", email = "cchousiyu@163.com"}
+]
+maintainers = [
+    {name = "Siyu Hou", email = "cchousiyu@163.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11,<3.14"
+keywords = [
+    "single-cell", "scRNA-seq", "cell-cell communication", "ligand-receptor interactions", "ligand-receptor",
+    "CellPhoneDB", "permutation-free", "reference-based", "healthy tissue reference", "anndata", "scanpy",
+    "bioinformatics",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
     "numpy>=1.24,<2.4.0",
     "pandas>=2.2.3,<3",
@@ -21,12 +41,34 @@ dependencies = [
     "jinja2 (>=3.1.6,<4.0.0)",
     "networkx (>=3.6.1,<4.0.0)",
     "adjusttext (>=1.0)",
+    "typer>=0.12,<1",
 ]
 
+[project.urls]
+Homepage = "https://svvord.github.io/FastCCC/"
+Documentation = "https://svvord.github.io/FastCCC/"
+Repository = "https://github.com/Svvord/FastCCC"
+Issues = "https://github.com/Svvord/FastCCC/issues"
+Changelog = "https://github.com/Svvord/FastCCC/blob/main/CHANGELOG.md"
+Paper = "https://doi.org/10.1038/s41467-025-66272-z"
+
+[project.scripts]
+fastccc = "fastccc.cli:app"
+
 [dependency-groups]
+test = [
+    "pytest>=8",
+]
 dev = [
+    {include-group = "test"},
     "ipykernel>=6.29.5,<7",
     "cellxgene-census>=1.16.2,<2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: downloads public data and runs complete FastCCC workflows (enable with --integration or FASTCCC_INTEGRATION=1)",
 ]
 
 [build-system]

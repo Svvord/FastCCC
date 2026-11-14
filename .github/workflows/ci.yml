@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "dev/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: uv sync --locked --group test
+      - name: Unit tests
+        run: uv run pytest -q
+
+  integration:
+    name: integration (workflows end to end)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+      - name: Set cache paths
+        run: |
+          echo "FASTCCC_TEST_CACHE=$HOME/.cache/fastccc-tests" >> "$GITHUB_ENV"
+          echo "FASTCCC_HOME=$HOME/.cache/fastccc-tests/home" >> "$GITHUB_ENV"
+      - name: Cache example data and reference panels
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/fastccc-tests
+          key: fastccc-testdata-v1
+      - name: Install
+        run: uv sync --locked --group test
+      - name: Integration tests
+        run: uv run pytest -q -m integration --integration -s
+
+  build:
+    name: build wheel and install it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Build
+        run: uv build
+      - name: Check metadata
+        run: uvx twine check dist/*
+      - name: Check packaged files
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          needed = ["fastccc/data/db/CPDBv5.0.0/interaction_table.csv",
+                    "fastccc/report/templates/report.html",
+                    "fastccc/report/templates/infer_report.html"]
+          missing = [n for n in needed if n not in names]
+          assert not missing, f"missing from wheel: {missing}"
+          print(f"{wheel}: {len(names)} files, packaged database and templates present")
+          PY
+      - name: Install the wheel in a clean environment
+        run: |
+          uv venv /tmp/clean --python 3.12
+          uv pip install --python /tmp/clean/bin/python dist/*.whl
+          /tmp/clean/bin/fastccc --version
+          /tmp/clean/bin/fastccc panels --json | python -c "import json,sys; d=json.load(sys.stdin); print(len(d['panels']), 'panels listed')"
+          /tmp/clean/bin/python -c "import fastccc; print(fastccc.list_databases())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*

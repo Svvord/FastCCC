@@ -3,6 +3,7 @@ title: Functions
 layout: default
 parent: Human CCC reference
 nav_order: 1
+grand_parent: Legacy API
 ---
 <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js">

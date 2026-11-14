@@ -173,3 +173,8 @@ results
 
 # local test data and outputs — not tracked
 scratch/
+
+# FastCCC default output folders
+fastccc_results/
+fastccc_reference/
+reference/*/ref_gene_pmf_dict.pkl

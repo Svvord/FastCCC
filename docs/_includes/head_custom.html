@@ -1,0 +1,39 @@
+{%- comment -%} Machine-readable description of the software and its paper, on the home page only. {%- endcomment -%}
+{%- if page.url == "/" -%}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "FastCCC",
+  "description": {{ page.description | jsonify }},
+  "applicationCategory": "Bioinformatics",
+  "applicationSubCategory": "Cell-cell communication analysis of single-cell RNA-seq data",
+  "url": {{ "/" | absolute_url | jsonify }},
+  "downloadUrl": "https://pypi.org/project/fastccc/",
+  "codeRepository": "https://github.com/Svvord/FastCCC",
+  "programmingLanguage": "Python",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "author": [
+    {"@type": "Person", "name": "Siyu Hou"},
+    {"@type": "Person", "name": "Wenjing Ma"},
+    {"@type": "Person", "name": "Xiang Zhou"}
+  ],
+  "citation": {
+    "@type": "ScholarlyArticle",
+    "name": "FastCCC: a permutation-free framework for scalable, robust, and reference-based cell-cell communication analysis in single cell transcriptomics studies",
+    "author": [
+      {"@type": "Person", "name": "Siyu Hou"},
+      {"@type": "Person", "name": "Wenjing Ma"},
+      {"@type": "Person", "name": "Xiang Zhou"}
+    ],
+    "isPartOf": {"@type": "Periodical", "name": "Nature Communications"},
+    "volumeNumber": "16",
+    "pagination": "11428",
+    "datePublished": "2025-12-13",
+    "identifier": "https://doi.org/10.1038/s41467-025-66272-z",
+    "sameAs": "https://doi.org/10.1038/s41467-025-66272-z"
+  }
+}
+</script>
+{%- endif -%}

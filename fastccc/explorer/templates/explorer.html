@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>
+:root { --ink:#222; --ink2:#555; --muted:#8a877f; --line:#e6e4de; --surface:#fff; --plane:#f7f6f2; --accent:#4b6fa5; --lig:#2f5d9e; --rec:#c2385a; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--plane); color:var(--ink); font-family: system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:13px; line-height:1.45; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+header { background:var(--surface); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; }
+header h1 { font-size:18px; font-weight:600; margin:0; letter-spacing:0.2px; }
+header .sub { color:var(--ink2); }
+header .badge { font-size:11px; padding:2px 8px; border-radius:10px; background:#eef1f6; color:#3a5a8a; text-transform:uppercase; letter-spacing:0.4px; }
+.layout { display:grid; grid-template-columns: 270px 1fr; gap:0; min-height:calc(100vh - 54px); }
+aside { background:var(--surface); border-right:1px solid var(--line); padding:16px 16px 40px; position:sticky; top:0; height:100vh; overflow-y:auto; }
+aside h3 { font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--muted); margin:18px 0 6px; font-weight:600; }
+aside h3:first-child { margin-top:0; }
+.frow { margin-bottom:10px; }
+.frow label.sl { display:flex; justify-content:space-between; color:var(--ink2); font-size:12px; }
+.frow input[type=range] { width:100%; accent-color:var(--accent); }
+.frow input[type=text], .frow select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:#fff; }
+.cl { max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:4px 6px; background:#fff; }
+.cl-item { display:flex; align-items:center; gap:6px; padding:2px 0; font-size:12px; cursor:pointer; }
+.cl-item input { margin:0; }
+.cl-tools { font-size:11px; color:var(--muted); padding:0 0 4px; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+.btn { display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; color:var(--ink); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn + .btn { margin-left:6px; }
+.btn.svg { margin-left:auto; padding:2px 8px; font-size:11px; color:var(--muted); }
+.card h2 label + .btn.svg { margin-left:10px; }
+main { padding:18px 24px 60px; min-width:0; }
+.tiles { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.tile { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 16px; min-width:140px; }
+.tile-m { font-size:14px; font-weight:500; color:var(--muted); }
+.tile-v { font-size:26px; font-weight:600; letter-spacing:-0.5px; }
+.tile-l { font-size:12px; color:var(--ink2); }
+.tile-s { font-size:11px; color:var(--muted); }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
+.card h2 { font-size:13px; font-weight:600; margin:0 0 8px; color:var(--ink); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.card h2 .hint { font-weight:400; color:var(--muted); font-size:12px; }
+.card h2 label { font-weight:400; color:var(--ink2); font-size:12px; margin-left:auto; }
+.card h2 select { font-size:12px; padding:2px 4px; }
+.row2 { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+@media (max-width:1250px) { .row2 { grid-template-columns:1fr; } }
+.scroll-x { overflow-x:auto; }
+.card svg { max-width:100%; height:auto; } .scroll-x svg { max-width:none; }
+#chord { overflow:hidden; }
+.row-table { display:grid; grid-template-columns: minmax(0,1fr) 380px; gap:14px; }
+@media (max-width:1250px) { .row-table { grid-template-columns:1fr; } }
+table { border-collapse:collapse; width:100%; font-size:12px; }
+th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+th { color:var(--ink2); font-weight:600; cursor:pointer; user-select:none; position:sticky; top:0; background:#fff; }
+th.sorted { color:var(--accent); }
+tbody tr:hover { background:#f6f8fb; } tbody tr.sel { background:#eef3fa; }
+td.lig, .lig { color:var(--lig); font-style:italic; } td.rec, .rec { color:var(--rec); font-style:italic; }
+.tbl-wrap { max-height:520px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+.pager { margin-top:8px; font-size:12px; color:var(--ink2); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.pager button { padding:3px 9px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; }
+.empty { color:var(--muted); padding:18px; font-size:12px; }
+.axis-lab { font-size:10.5px; fill:#444; } .axis-title { font-size:11px; fill:#777; } .plot-title { font-size:12px; font-weight:600; fill:#333; } .chord-lab { font-size:10.5px; fill:#333; }
+.tip { position:absolute; background:#222; color:#fff; padding:7px 9px; border-radius:6px; font-size:11.5px; pointer-events:none; max-width:320px; line-height:1.4; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.tip .lig { color:#9fc1f5; } .tip .rec { color:#f3a4b8; }
+#detail .d-title { font-size:15px; font-weight:600; margin-bottom:6px; } #detail .d-sub { font-size:12px; font-weight:400; color:var(--ink2); }
+.d-facts { display:grid; grid-template-columns:1fr; gap:3px; margin:8px 0; font-size:12px; }
+.d-facts div { display:grid; grid-template-columns: 170px 1fr; gap:8px; } .d-facts .k { color:var(--muted); } .d-facts .v { color:var(--ink); }
+.d-note { font-size:11px; color:var(--muted); margin:4px 0 10px; }
+.d-expr { display:grid; grid-template-columns:1fr; gap:8px; }
+#shortlist ul { list-style:none; padding:0; margin:0; } #shortlist li { padding:3px 0; border-bottom:1px dashed var(--line); font-size:12px; }
+.muted { color:var(--muted); }
+#findings li { padding:3px 0; font-size:12.5px; } #findings b { font-weight:600; }
+.picks { display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:8px; font-size:12px; } .picks label { display:flex; gap:5px; align-items:center; }
+#methods-text p { font-size:12.5px; line-height:1.6; color:var(--ink); }
+ul.plain { list-style:none; padding:0; margin:4px 0 8px; font-size:12px; } ul.plain li { padding:1px 0; }
+#difflist h4, #methods h4 { font-size:12px; margin:10px 0 4px; color:var(--ink2); }
+table.kv th { width:190px; color:var(--muted); font-weight:500; white-space:normal; vertical-align:top; cursor:default; position:static; }
+table.kv td { white-space:normal; }
+.prose p { margin:4px 0; color:var(--ink2); }
+details summary { cursor:pointer; font-weight:600; font-size:13px; }
+#pair-focus { font-size:12px; color:var(--accent); margin-left:8px; }
+footer { color:var(--muted); font-size:11px; padding:10px 24px; }
+.presets { display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; } .presets .btn { padding:5px 4px; font-size:11.5px; margin-left:0; text-align:center; } .btn.dim { color:var(--muted); border-style:dashed; }
+aside h3 .reset-link { float:right; font-weight:500; text-transform:none; letter-spacing:0; color:var(--accent); font-size:11px; text-decoration:none; } aside h3 .reset-link:hover { text-decoration:underline; }
+.fac { margin-bottom:7px; } .fac-title { font-size:10.5px; color:var(--muted); margin-bottom:2px; } .fac-item { align-items:flex-start; font-size:11px; line-height:1.3; } .fac-item input { margin-top:2px; flex:none; } .fac-item b { font-weight:600; color:var(--ink2); flex:none; min-width:40px; } .fac-item span { color:var(--muted); } .fac-count { font-size:10.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ title }}</h1>
+  <span class="badge">{{ kind_label }}</span>
+  <span class="sub">{{ subtitle }}</span>
+</header>
+<div class="layout">
+<aside>
+  <h3>Presets <a href="#" id="f-reset" class="reset-link" title="forget the custom settings and return to Default">reset</a></h3>
+  <div class="frow presets"><button class="btn primary" id="f-default" title="the run's own criteria: every significant interaction (p &lt; 0.05; ligand and receptor expressed in at least 10% of the cells)">Default</button><button class="btn" id="f-highlights" title="Default plus dataset-adaptive thresholds for specific, well supported and robust interactions; the thresholds are quantiles of this dataset and relax step by step until at least 20 interactions remain">Highlights</button><button class="btn" id="f-custom" title="your last manual settings; changing any filter switches to Custom">Custom</button></div>
+  <div id="f-preset-note" class="muted" style="font-size:11px;margin:-4px 0 8px"></div>
+  <h3 id="f-trend-title">Trend vs reference</h3>
+  <div class="frow" id="f-trend"></div>
+  <h3>Gene</h3>
+  <div class="frow"><input type="text" id="f-gene" placeholder="ligand or receptor contains…"></div>
+  <h3>Sender</h3>
+  <div class="frow cl" id="f-senders"></div>
+  <h3>Receiver</h3>
+  <div class="frow cl" id="f-receivers"></div>
+  <h3>Thresholds</h3>
+  <div class="frow"><label class="sl"><span>Communication score</span><span id="f-mincs-v"></span></label><input type="range" id="f-mincs" min="0" max="30" step="0.5" value="0"></div>
+  <div class="frow"><label class="sl"><span>Specificity: cell-type pairs with this LR</span><span id="f-maxpairs-v"></span></label><input type="range" id="f-maxpairs" min="1" max="64" step="1" value="64"></div>
+  <div class="frow"><label class="sl"><span>Expressing cells (ligand and receptor)</span><span id="f-minpct-v"></span></label><input type="range" id="f-minpct" min="0" max="80" step="5" value="0"></div>
+  <div class="frow"><label class="sl"><span>p-value</span><span id="f-maxp-v"></span></label><input type="range" id="f-maxp" min="1.3" max="16" step="0.1" value="1.3"></div>
+  <div class="frow" id="f-z-row"><label class="sl"><span>Effect size (null SDs above expectation)</span><span id="f-minz-v"></span></label><input type="range" id="f-minz" min="0" max="20" step="0.5" value="0"></div>
+  <div class="frow" id="f-bs-row"><label class="sl"><span>Bootstrap support</span><span id="f-minbs-v"></span></label><input type="range" id="f-minbs" min="0" max="100" step="10" value="0"></div>
+  <div class="frow" id="f-rep-row"><label class="sl"><span>Replication across samples</span><span id="f-minrep-v"></span></label><input type="range" id="f-minrep" min="0" max="100" step="10" value="0"></div>
+  <h3 id="f-mod-title">Module support</h3>
+  <div class="frow" id="f-mod-row">
+    <div id="f-modfactors"></div>
+    <label class="sl" style="margin-top:8px"><span>Significant in</span><span id="f-minmod-v"></span></label><input type="range" id="f-minmod" min="0" max="16" step="1" value="0">
+  </div>
+  <h3 id="f-signal-title">Signal type</h3>
+  <div class="frow cl" id="f-signal"></div>
+  <h3>Classification</h3>
+  <div class="frow cl" id="f-classes"></div>
+</aside>
+<main>
+  <div class="tiles" id="tiles"></div>
+  <div class="card" id="findings-card"><h2>Key findings <span class="hint">computed from the current selection by fixed rules; numbers, not interpretation</span></h2><ul id="findings" class="plain"></ul></div>
+  <div class="row2">
+    <div class="card"><h2>Sender × receiver <span class="hint">click a cell to focus a pair</span><span id="pair-focus"></span><button class="btn svg" data-svg="heatmap">SVG</button></h2><div class="scroll-x" id="heatmap"></div></div>
+    <div class="card"><h2>Communication flow <span class="hint">sender → receiver</span><label>color by <select id="chord-by"><option value="trend">trend</option><option value="sender">sender</option></select></label><button class="btn svg" data-svg="chord">SVG</button></h2><div id="chord"></div></div>
+  </div>
+  <div class="card"><h2>Ligand–receptor pairs across cell-type pairs <span class="hint">grouped by sender</span><label>show top <select id="dot-top"><option>15</option><option selected>30</option><option>50</option><option>80</option></select> LR pairs · up to <select id="dot-cols"><option value="auto" selected>fit width</option><option>40</option><option>70</option><option>120</option><option>200</option></select> cell-type pairs</label><button class="btn svg" data-svg="dotplot">SVG</button></h2><div class="scroll-x" id="dotplot"></div></div>
+  <div class="row2">
+    <div class="card"><h2>Signalling roles <span class="hint">outgoing vs incoming per cell type</span><label>measure <select id="roles-by"><option value="count">interactions</option><option value="strength">summed score</option></select></label><button class="btn svg" data-svg="roles">SVG</button></h2><div id="roles"></div></div>
+    <div class="card"><h2>Flow: sender → ligand–receptor → receiver <span class="hint">top pairs of the selection</span><button class="btn svg" data-svg="sankey">SVG</button></h2><div class="scroll-x" id="sankey"></div></div>
+  </div>
+  <div class="card"><h2>Pathway families by cell type <span class="hint">LR pairs grouped by CellPhoneDB classification or by gene set (a pair counts in every set that contains its ligand or receptor); click a row to filter</span><span id="path-focus" class="muted" style="font-size:12px"></span><label>group by <select id="path-by"><option value="cpdb">CellPhoneDB classification</option></select></label><label>rows <select id="path-rows"><option value="overall">top overall</option><option value="percell">cell-type specific</option></select></label><label>rank by <select id="path-rank"><option value="count">interactions</option><option value="enrich">enrichment</option></select></label><label>show top <select id="path-top"><option>30</option><option>60</option><option>100</option></select></label><button class="btn svg" data-svg="pathways">SVG</button></h2><div class="scroll-x" id="pathways"></div></div>
+  <div class="row2" id="stability-row">
+    <div class="card"><h2>Effect size vs significance <span class="hint">standardised effect of the mean module; the ranking that p-values at their floor cannot give</span><button class="btn svg" data-svg="effect">SVG</button></h2><div id="effect"></div></div>
+    <div class="card"><h2>Stability <span class="hint">bootstrap support over cell resamples</span><button class="btn svg" data-svg="stability">SVG</button></h2><div id="stability"></div></div>
+  </div>
+  <div class="card" id="samples-card"><h2>Samples × interactions <span class="hint">which interactions of the current selection replicate across samples; samples ordered by similarity of their communication profile</span><button class="btn svg" data-svg="samples,samplepca" data-name="samples">SVG</button></h2><div class="row2"><div class="scroll-x" id="samples"></div><div id="samplepca"></div></div></div>
+  <div class="row2" id="signal-row">
+    <div class="card"><h2>Signal type from the scoring modules <span class="hint">broad vs sub-population signals, complex-limited, one-sided</span><button class="btn svg" data-svg="signaltypes">SVG</button></h2><div id="signaltypes"></div></div>
+    <div class="card"><h2>Module grid of the selected interaction <span class="hint">summary × complex aggregation × LR combination</span><button class="btn svg" data-svg="modulegrid">SVG</button></h2><div id="modulegrid"></div></div>
+  </div>
+  <div class="row2" id="refqc-row">
+    <div class="card"><h2>Disturbance per cell type <span class="hint">gained = share of its query communications that are new vs the reference; lost = share of its reference communications missing in the query</span><button class="btn svg" data-svg="disturb">SVG</button></h2><div id="disturb"></div></div>
+    <div class="card"><h2>Query–reference comparability <span class="hint">housekeeping-gene calibration and detection rates · whole dataset, not affected by the filters</span><button class="btn svg" data-svg="qc">SVG</button></h2><div id="qc"></div></div>
+  </div>
+  <div class="row2" id="ref-row">
+    <div class="card"><h2>Query vs reference <span class="hint">colour = trend; the Up/Down call is made on the ligand and receptor sides against their reference intervals</span><label>axes <select id="scatter-by"><option value="fold">fold over expectation</option><option value="cs">combined score</option><option value="lig">ligand side</option><option value="rec">receptor side</option></select></label><button class="btn svg" data-svg="scatter">SVG</button></h2><div id="scatter"></div></div>
+    <div class="card"><h2>What drives the change <span class="hint">ligand side, receptor side or both outside the reference band</span><button class="btn svg" data-svg="drivers">SVG</button></h2><div id="drivers"></div></div>
+  </div>
+  <div class="card" id="diff-card"><h2>Difference between conditions <span class="hint">interactions per cell-type pair, A − B; click a cell for gained and lost pairs</span><label><select id="diff-a"></select> − <select id="diff-b"></select></label><button class="btn svg" data-svg="diffmap">SVG</button></h2><div class="row2"><div class="scroll-x" id="diffmap"></div><div id="difflist"></div></div></div>
+  <div class="row2">
+    <div class="card"><h2>Communication patterns <span class="hint">NMF of cell type × LR pair for the current selection; which cell types share which signals</span><label><select id="pat-dir"><option value="outgoing">outgoing (senders)</option><option value="incoming">incoming (receivers)</option></select></label><label><select id="pat-k"><option value="auto">k: auto</option><option value="2">k = 2</option><option value="3">k = 3</option><option value="4">k = 4</option><option value="5">k = 5</option><option value="6">k = 6</option><option value="7">k = 7</option><option value="8">k = 8</option></select></label><button class="btn svg" data-svg="patterns">SVG</button></h2><div class="scroll-x" id="patterns"></div></div>
+    <div class="card"><h2>Pathway enrichment of the selection <span class="hint">ligand and receptor genes vs all database genes, hypergeometric, BH-adjusted</span><label><select id="enr-lib"></select></label><button class="btn svg" data-svg="enrichment">SVG</button></h2><div id="enrichment"></div></div>
+  </div>
+  <div class="card" id="cells-card"><h2>Cells <span class="hint">expression of the selected ligand and receptor across cells</span><label>gene <select id="cells-gene"></select></label><button class="btn svg" data-svg="umap,violin" data-name="cells">SVG</button></h2><div class="row2"><div id="umap"></div><div id="violin"></div></div></div>
+  <div class="row-table">
+    <div class="card"><h2>Interactions <span class="hint">click a header to sort, a row to inspect, tick to shortlist</span></h2><div class="tbl-wrap" id="table"></div></div>
+    <div>
+      <div class="card"><h2>Evidence</h2><div id="detail"></div></div>
+      <div class="card"><h2>Shortlist <span class="hint" id="pin-count">0</span></h2><div id="shortlist"></div></div>
+    </div>
+  </div>
+  <div class="card" id="figure-card"><h2>Figure builder <span class="hint">compose the panels below into one SVG with panel letters, in the current selection</span></h2><div id="figure-picks" class="picks"></div><div class="pager"><button class="btn primary" id="fig-build">download composite SVG</button> <span class="muted" id="fig-note"></span></div></div>
+  <div class="card"><h2>Methods text <span class="hint">ready to paste; numbers are taken from this run</span><button class="btn svg" id="copy-methods">copy</button></h2><div id="methods-text" class="prose"></div></div>
+  <div class="card"><details><summary>Run details, reference panel, mapping and how to read</summary><div id="methods" style="margin-top:10px"></div></details></div>
+  <footer>Generated by FastCCC {{ version }} on {{ created }} · self-contained page, no data leaves this file · <a href="https://github.com/Svvord/FastCCC">github.com/Svvord/FastCCC</a> · Hou, Ma &amp; Zhou, Nat Commun 16, 11428 (2025)</footer>
+</main>
+</div>
+<script>{{ d3_js }}</script>
+<script>{{ sankey_js }}</script>
+<script>window.FASTCCC_PAYLOAD = {{ payload_json }};</script>
+<script>{{ explorer_js }}</script>
+</body>
+</html>
