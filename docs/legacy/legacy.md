@@ -13,6 +13,6 @@ These pages document the original entrypoints, which remain available and produc
 
 Paths in these pages such as `./db/CPDBv5.0.0` still work: the database now ships inside the package and such names fall back to the packaged copy.
 
-- [Basic usage]({{ site.baseurl }}/usage/usage.html): the standard analysis with `Cauchy_combination_of_statistical_analysis_methods`.
+- [Basic usage]({{ site.baseurl }}/usage): the standard analysis with `Cauchy_combination_of_statistical_analysis_methods`.
 - [Human CCC reference]({{ site.baseurl }}/cccref): building panels and inferring with `build_reference_workflow` / `infer_query_workflow`.
 - [Toolkits]({{ site.baseurl }}/toolkits.html).
